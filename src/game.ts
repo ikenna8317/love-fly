@@ -1,5 +1,8 @@
 import 'phaser'
-import {Game, Types} from 'phaser';
+import {
+    Game,
+    Types
+} from 'phaser';
 import Demo from './scenes/demo';
 import gameConstants from './constants';
 
