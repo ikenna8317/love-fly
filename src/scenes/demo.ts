@@ -6,8 +6,7 @@ const {
     CANVAS_HEIGHT,
     CANVAS_WIDTH,
     FLOOR_HEIGHT,
-    PLAYER_SPAWN_POS,
-    PLAYER_DIM
+    PLAYER
 } = gameConstants
 
 export default class Demo extends Phaser.Scene
@@ -24,7 +23,7 @@ export default class Demo extends Phaser.Scene
     {
         //create player and floor placeholders
         const floor: GameObjects.Rectangle = this.add.rectangle(0, CANVAS_HEIGHT - FLOOR_HEIGHT, CANVAS_WIDTH, CANVAS_HEIGHT, 0x4f3d33).setOrigin(0)
-        this.player = this.add.rectangle(PLAYER_SPAWN_POS.x, PLAYER_SPAWN_POS.y, PLAYER_DIM.width, PLAYER_DIM.height, 0xc72614).setOrigin(0)
+        this.player = this.add.rectangle(PLAYER.spawnX, PLAYER.spawnY, PLAYER.width, PLAYER.height, 0xc72614).setOrigin(0)
 
         //enable physics on floor and player objects
         this.physics.add.existing(floor, true)
@@ -33,7 +32,7 @@ export default class Demo extends Phaser.Scene
         if (this.player.body instanceof Phaser.Physics.Arcade.Body) {
             this.player.body.setBounceY(0.1)
             this.player.body.setDamping(true)
-            this.player.body.setDragX(0.35)
+            this.player.body.setDragX(0.15)
             this.player.body.setCollideWorldBounds()
         }
 
@@ -47,6 +46,17 @@ export default class Demo extends Phaser.Scene
     }
 
     update(): void {
+        if (this.player.body instanceof Phaser.Physics.Arcade.Body) {
+            if (this.cursorKeys.left.isDown) 
+                this.player.body.setVelocityX(-1 * PLAYER.speedX)
+             else if (this.cursorKeys.right.isDown) 
+                this.player.body.setVelocityX(PLAYER.speedX)
+            
 
+            if (this.cursorKeys.space.isDown) {
+                this.player.body.setVelocityY(-1 * PLAYER.jump)
+            }
+
+        }
     }
 }
