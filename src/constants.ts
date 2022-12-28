@@ -1,19 +1,18 @@
 //In-game constant values
 //---------------------
-import { Types } from "phaser"
-
-interface BoxDimension {
-    width: number,
-    height: number
-}
-
 interface GameConstants {
     CANVAS_WIDTH: number,
     CANVAS_HEIGHT: number,
     GRAVITY: number,
-    PLAYER_DIM: BoxDimension,
+    PLAYER: { 
+        width: number,
+        height: number,
+        spawnX: number,
+        spawnY: number,
+        speedX: number,
+        jump: number
+     },
     FLOOR_HEIGHT: number,
-    PLAYER_SPAWN_POS: Types.Math.Vector2Like
 
 }
 
@@ -21,13 +20,16 @@ const gameConstants: GameConstants = {
     CANVAS_WIDTH: 1000,
     CANVAS_HEIGHT: 550,
     GRAVITY: 300,
-    PLAYER_DIM: {
+    PLAYER: {
+
         width: 52,
-        height: 110
+        height: 59,
+        spawnX: 32,
+        spawnY: 32,
+        speedX: 75,
+        jump: 170
     },
     FLOOR_HEIGHT: 20,
-    PLAYER_SPAWN_POS: { x: 32, y: 32 }
-
 }
 
 export default gameConstants
