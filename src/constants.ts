@@ -1,5 +1,8 @@
 //In-game constant values
 //---------------------
+
+import 'phaser'
+
 interface GameConstants {
     CANVAS_WIDTH: number,
     CANVAS_HEIGHT: number,
@@ -13,6 +16,9 @@ interface GameConstants {
         jump: number
      },
     FLOOR_HEIGHT: number,
+    KEYS: {
+	    action: number
+    }
 
 }
 
@@ -30,6 +36,9 @@ const gameConstants: GameConstants = {
         jump: 170
     },
     FLOOR_HEIGHT: 20,
+    KEYS: {
+	    action: Phaser.Input.Keyboard.KeyCodes.S
+    }
 }
 
 export default gameConstants
