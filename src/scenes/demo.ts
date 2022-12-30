@@ -1,5 +1,5 @@
 import 'phaser'
-import { GameObjects, Types, Input } from 'phaser';
+//import { GameObjects, Types, Input } from 'phaser';
 import gameConstants from '../constants';
 
 const {
@@ -12,9 +12,10 @@ const {
 
 export default class Demo extends Phaser.Scene
 {
-    player!: GameObjects.Triangle
-    cursorKeys: Types.Input.Keyboard.CursorKeys
-    actionBtn: Input.Keyboard.Key
+    player!: Phaser.GameObjects.Rectangle
+    elevator: Phaser.GameObjects.Rectangle
+    cursorKeys: Phaser.Types.Input.Keyboard.CursorKeys
+    actionBtn: Phaser.Input.Keyboard.Key
 
     constructor ()
     {
@@ -23,13 +24,18 @@ export default class Demo extends Phaser.Scene
 
     create(): void
     {
-        //create player and floor placeholders
-        const floor: GameObjects.Rectangle = this.add.rectangle(0, CANVAS_HEIGHT - FLOOR_HEIGHT, CANVAS_WIDTH, CANVAS_HEIGHT, 0x4f3d33).setOrigin(0)
-       //this.player = this.add.rectangle(PLAYER.spawnX, PLAYER.spawnY, PLAYER.width, PLAYER.height, 0xc72614).setOrigin(0)
-	this.player = this.add.triangle(PLAYER.spawnX, PLAYER.spawnY, undefined, undefined, undefined, undefined, undefined, undefined, 0xc72614).setOrigin(0)
+        //create player and platforms placeholders
+        const platforms: Phaser.Physics.Arcade.StaticGroup = this.physics.add.staticGroup()
+        platforms.add(this.add.rectangle(0, CANVAS_HEIGHT - FLOOR_HEIGHT, CANVAS_WIDTH, FLOOR_HEIGHT, 0x78563c).setOrigin(0))
+	
+	//create and init the elevator
+	//this.elevator = this.add.rectangle(
 
-        //enable physics on floor and player objects
-        this.physics.add.existing(floor, true)
+	this.player = this.add.rectangle(PLAYER.spawnX, PLAYER.spawnY, PLAYER.width, PLAYER.height, 0xc72614).setOrigin(0)
+	//this.player = this.add.triangle(PLAYER.spawnX, PLAYER.spawnY, undefined, undefined, undefined, undefined, undefined, undefined, 0xc72614).setOrigin(0)
+
+        //enable physics on platforms and player objects
+        //this.physics.add.existing(platforms, true)
         this.physics.add.existing(this.player)
 
 	this.player.setData({ isGrounded: false, enableAction: false })
@@ -46,7 +52,7 @@ export default class Demo extends Phaser.Scene
 
         }
 
-        this.physics.add.collider(this.player, floor, () => this.player.setData('isGrounded', true))
+        this.physics.add.collider(this.player, platforms, () => this.player.setData('isGrounded', true))
 
         this.player.setInteractive()
 
