@@ -18,9 +18,8 @@ interface GameConstants {
     ELEVATOR: {
 	    width: number,
 	    height: number,
-	    stop1y: number
-	    stop2y:  number,
-    },
+	       
+     },
     FLOOR_HEIGHT: number,
     KEYS: {
 	    action: number
@@ -44,9 +43,7 @@ const gameConstants: GameConstants = {
     ELEVATOR: {
 	width: 255,
 	height: 15,
-	stop1y: 11,
-	stop2y: 10
-    },
+     },
     FLOOR_HEIGHT: 20,
     KEYS: {
 	    action: Phaser.Input.Keyboard.KeyCodes.S

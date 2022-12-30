@@ -67,7 +67,7 @@ export default class Demo extends Phaser.Scene
 	
 	//create and init the elevator
 	this.elevator = this.add.rectangle(CANVAS_WIDTH / 2, CANVAS_HEIGHT - (FLOOR_HEIGHT * 2), CANVAS_WIDTH / 3, FLOOR_HEIGHT, 0x717c8f).setOrigin(0.5, 0)
-	this.elevator.setData({ firstStop: true, stop1y: CANVAS_HEIGHT - (FLOOR_HEIGHT * 2), stop2y: 10 })
+	this.elevator.setData({ onFirstStop: true, firstStopY: CANVAS_HEIGHT - (FLOOR_HEIGHT * 2), secondStopY: 10 })
 	this.physics.add.existing(this.elevator)
 
 	//make the elevator a semi-static physics object in that it is not affected by gravity and it does not move whenever the player jumps on it
@@ -78,6 +78,26 @@ export default class Demo extends Phaser.Scene
 	}
 
     }
+
+   //updates the elevator's vertical displacement 
+   updateElevator(): void {
+	if (this.elevator.body instanceof Phaser.Physics.Arcade.Body) {
+
+		if (this.elevator.body.y <= this.elevator.getData('secondStopY')) {
+			this.elevator.body.setVelocityY(0)
+			this.elevator.body.setAccelerationY(15)
+			//this.elevator.setData('onFirstStop', false)
+		}
+	
+		else if (this.elevator.body.y >= this.elevator.getData('firstStopY')) {
+			this.elevator.body.setVelocityY(0)
+			this.elevator.body.setAccelerationY(-1 * 15)
+			//this.elevator.setData('onFirstStop', false)
+  		 }
+
+	}
+   }
+  
 
     //modify the action callback to test different physics api
     //action(): void {
@@ -92,6 +112,9 @@ export default class Demo extends Phaser.Scene
  //   }
 
     update(): void {
+	
+	this.updateElevator()
+
         if (this.player.body instanceof Phaser.Physics.Arcade.Body) {
             if (this.cursorKeys.left.isDown) 
                 this.player.body.setVelocityX(-1 * PLAYER.speedX)
