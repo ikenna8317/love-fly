@@ -7,7 +7,8 @@ const {
     CANVAS_WIDTH,
     FLOOR_HEIGHT,
     PLAYER,
-    KEYS
+    KEYS,
+    ELEVATOR
 } = gameConstants
 
 export default class Demo extends Phaser.Scene
@@ -23,13 +24,12 @@ export default class Demo extends Phaser.Scene
     }
 
     create(): void
-    {
+    {	
         //create player and platforms placeholders
         const platforms: Phaser.Physics.Arcade.StaticGroup = this.physics.add.staticGroup()
         platforms.add(this.add.rectangle(0, CANVAS_HEIGHT - FLOOR_HEIGHT, CANVAS_WIDTH, FLOOR_HEIGHT, 0x78563c).setOrigin(0))
-	
-	//create and init the elevator
-	//this.elevator = this.add.rectangle(
+
+	this.initElevator()
 
 	this.player = this.add.rectangle(PLAYER.spawnX, PLAYER.spawnY, PLAYER.width, PLAYER.height, 0xc72614).setOrigin(0)
 	//this.player = this.add.triangle(PLAYER.spawnX, PLAYER.spawnY, undefined, undefined, undefined, undefined, undefined, undefined, 0xc72614).setOrigin(0)
@@ -53,12 +53,29 @@ export default class Demo extends Phaser.Scene
         }
 
         this.physics.add.collider(this.player, platforms, () => this.player.setData('isGrounded', true))
+	this.physics.add.collider(this.player, this.elevator, () => this.player.setData('isGrounded', true))
 
         this.player.setInteractive()
 
         //setup keyboard input
         this.cursorKeys = this.input.keyboard.createCursorKeys()
 	this.actionBtn = this.input.keyboard.addKey(KEYS.action)
+
+    }
+
+    initElevator(): void {
+	
+	//create and init the elevator
+	this.elevator = this.add.rectangle(CANVAS_WIDTH / 2, CANVAS_HEIGHT - (FLOOR_HEIGHT * 2), CANVAS_WIDTH / 3, FLOOR_HEIGHT, 0x717c8f).setOrigin(0.5, 0)
+	this.elevator.setData({ firstStop: true, stop1y: CANVAS_HEIGHT - (FLOOR_HEIGHT * 2), stop2y: 10 })
+	this.physics.add.existing(this.elevator)
+
+	//make the elevator a semi-static physics object in that it is not affected by gravity and it does not move whenever the player jumps on it
+	if (this.elevator.body instanceof Phaser.Physics.Arcade.Body) {
+		this.elevator.body.setAllowGravity(false)
+		this.elevator.body.setImmovable(true)
+
+	}
 
     }
 

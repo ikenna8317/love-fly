@@ -15,6 +15,12 @@ interface GameConstants {
         speedX: number,
         jump: number
      },
+    ELEVATOR: {
+	    width: number,
+	    height: number,
+	    stop1y: number
+	    stop2y:  number,
+    },
     FLOOR_HEIGHT: number,
     KEYS: {
 	    action: number
@@ -34,6 +40,12 @@ const gameConstants: GameConstants = {
         spawnY: 32,
         speedX: 75,
         jump: 170
+    },
+    ELEVATOR: {
+	width: 255,
+	height: 15,
+	stop1y: 11,
+	stop2y: 10
     },
     FLOOR_HEIGHT: 20,
     KEYS: {
