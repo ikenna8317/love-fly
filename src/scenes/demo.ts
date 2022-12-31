@@ -28,8 +28,11 @@ export default class Demo extends Phaser.Scene
         //create player and platforms placeholders
         const platforms: Phaser.Physics.Arcade.StaticGroup = this.physics.add.staticGroup()
         platforms.add(this.add.rectangle(0, CANVAS_HEIGHT - FLOOR_HEIGHT, CANVAS_WIDTH, FLOOR_HEIGHT, 0x78563c).setOrigin(0))
+	platforms.add(this.add.rectangle(0, 395, 380, FLOOR_HEIGHT, 0x78563c).setOrigin(0))
+	platforms.add(this.add.rectangle(CANVAS_WIDTH - 340, 395, 380, FLOOR_HEIGHT, 0x78563c).setOrigin(0))
 
 	this.initElevator()
+	
 
 	this.player = this.add.rectangle(PLAYER.spawnX, PLAYER.spawnY, PLAYER.width, PLAYER.height, 0xc72614).setOrigin(0)
 	//this.player = this.add.triangle(PLAYER.spawnX, PLAYER.spawnY, undefined, undefined, undefined, undefined, undefined, undefined, 0xc72614).setOrigin(0)
@@ -68,7 +71,7 @@ export default class Demo extends Phaser.Scene
 	
 	
 	//create and init the elevator
-	this.elevator = this.add.rectangle(CANVAS_WIDTH / 2, CANVAS_HEIGHT - (FLOOR_HEIGHT * 2), CANVAS_WIDTH / 4, FLOOR_HEIGHT - 5, 0x717c8f).setOrigin(0.5, 0)
+	this.elevator = this.add.rectangle(CANVAS_WIDTH / 2, CANVAS_HEIGHT - (FLOOR_HEIGHT * 2), CANVAS_WIDTH / 6, FLOOR_HEIGHT - 5, 0x717c8f).setOrigin(0.5, 0)
 	this.elevator.setData({ firstStopY: CANVAS_HEIGHT - (FLOOR_HEIGHT * 2), secondStopY: PLAYER.height + 5 })
 	this.physics.add.existing(this.elevator)
 
@@ -93,7 +96,7 @@ export default class Demo extends Phaser.Scene
 
 		else if (this.elevator.body.y >= this.elevator.getData('firstStopY')) {
 			this.elevator.body.setVelocityY(0)
-			this.elevator.body.setAccelerationY(-1 * ELEVATOR.acceleration)
+			this.elevator.body.setAccelerationY(-ELEVATOR.acceleration)
 			//this.elevator.setData('onFirstStop', false)
   		 }
 
@@ -117,9 +120,10 @@ export default class Demo extends Phaser.Scene
 	
 	this.updateElevator()
 
+	   
         if (this.player.body instanceof Phaser.Physics.Arcade.Body) {
             if (this.cursorKeys.left.isDown) 
-                this.player.body.setVelocityX(-1 * PLAYER.speedX)
+                this.player.body.setVelocityX(-PLAYER.speedX)
              else if (this.cursorKeys.right.isDown) 
                 this.player.body.setVelocityX(PLAYER.speedX)
 
