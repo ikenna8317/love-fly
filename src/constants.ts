@@ -16,8 +16,7 @@ interface GameConstants {
         jump: number
      },
     ELEVATOR: {
-	    width: number,
-	    height: number,
+	    acceleration: number
 	       
      },
     FLOOR_HEIGHT: number,
@@ -41,8 +40,7 @@ const gameConstants: GameConstants = {
         jump: 170
     },
     ELEVATOR: {
-	width: 255,
-	height: 15,
+	acceleration: 15
      },
     FLOOR_HEIGHT: 20,
     KEYS: {

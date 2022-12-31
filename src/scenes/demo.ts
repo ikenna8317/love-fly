@@ -65,9 +65,11 @@ export default class Demo extends Phaser.Scene
 
     initElevator(): void {
 	
+	
+	
 	//create and init the elevator
-	this.elevator = this.add.rectangle(CANVAS_WIDTH / 2, CANVAS_HEIGHT - (FLOOR_HEIGHT * 2), CANVAS_WIDTH / 3, FLOOR_HEIGHT, 0x717c8f).setOrigin(0.5, 0)
-	this.elevator.setData({ onFirstStop: true, firstStopY: CANVAS_HEIGHT - (FLOOR_HEIGHT * 2), secondStopY: 10 })
+	this.elevator = this.add.rectangle(CANVAS_WIDTH / 2, CANVAS_HEIGHT - (FLOOR_HEIGHT * 2), CANVAS_WIDTH / 4, FLOOR_HEIGHT - 5, 0x717c8f).setOrigin(0.5, 0)
+	this.elevator.setData({ firstStopY: CANVAS_HEIGHT - (FLOOR_HEIGHT * 2), secondStopY: PLAYER.height + 5 })
 	this.physics.add.existing(this.elevator)
 
 	//make the elevator a semi-static physics object in that it is not affected by gravity and it does not move whenever the player jumps on it
@@ -82,16 +84,16 @@ export default class Demo extends Phaser.Scene
    //updates the elevator's vertical displacement 
    updateElevator(): void {
 	if (this.elevator.body instanceof Phaser.Physics.Arcade.Body) {
-
+		//if the elevator's vertical position is higher or equal to the upper (second) stop checkpoint then stop it and accelerate it back to the lower checkpoint and vice versa
 		if (this.elevator.body.y <= this.elevator.getData('secondStopY')) {
 			this.elevator.body.setVelocityY(0)
-			this.elevator.body.setAccelerationY(15)
+			this.elevator.body.setAccelerationY(ELEVATOR.acceleration)
 			//this.elevator.setData('onFirstStop', false)
 		}
-	
+
 		else if (this.elevator.body.y >= this.elevator.getData('firstStopY')) {
 			this.elevator.body.setVelocityY(0)
-			this.elevator.body.setAccelerationY(-1 * 15)
+			this.elevator.body.setAccelerationY(-1 * ELEVATOR.acceleration)
 			//this.elevator.setData('onFirstStop', false)
   		 }
 
