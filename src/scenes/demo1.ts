@@ -9,7 +9,7 @@ const {
 } = gameConstants
 
 export default class Demo extends Phaser.Scene {
-    player: Phaser.GameObjects.Rectangle
+    player: Phaser.GameObjects.Container
 	//platform: Phaser.GameObjects.Rectangle
 	cursorKeys: Phaser.Types.Input.Keyboard.CursorKeys
 	trackPointerKey: Phaser.Input.Keyboard.Key
@@ -29,7 +29,16 @@ export default class Demo extends Phaser.Scene {
 
 
         const floor: Phaser.GameObjects.Rectangle = this.add.rectangle(0, CANVAS_HEIGHT - FLOOR_HEIGHT, CANVAS_WIDTH, FLOOR_HEIGHT, 0xd1e3ff).setOrigin(0, 0)
-        this.player = this.add.rectangle(PLAYER.spawnX, PLAYER.spawnY, PLAYER.width, PLAYER.height, 0xff5b3b).setOrigin(0, 0)
+        this.player = this.add.container(PLAYER.spawnX, PLAYER.spawnY)
+		this.player.width = PLAYER.width
+		this.player.height = PLAYER.height
+
+		const p: Phaser.GameObjects.Rectangle = this.add.rectangle(0, 0, PLAYER.width, PLAYER.height, 0xff5b3b)
+		const gun: Phaser.GameObjects.Rectangle = this.add.rectangle(16, -5, 32, 16, 0x32a852)
+
+		this.player.add(p)
+		this.player.add(gun)
+
 		this.player.setDataEnabled()
 		this.player.setData('isGrounded', false)
 		this.player.setData('trackPointer', false)
