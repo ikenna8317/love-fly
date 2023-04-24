@@ -1,9 +1,10 @@
-import 'phaser'
+//import 'phaser'
 import {
     Game,
     Types
 } from 'phaser';
-import Demo from './scenes/demo';
+//import Demo from './scenes/demo';
+import Demo from './scenes/demo1'
 import gameConstants from './constants';
 
 const {
