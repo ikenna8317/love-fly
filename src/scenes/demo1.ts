@@ -34,7 +34,6 @@ export default class Demo extends Phaser.Scene {
 		//this.load.image('beach_ts', 'beach_tileset_2.png');
 		this.load.image('projectile', 'laser_projectile.png');
 
-
 	}
 
 	//used to init the assets and configure the scene at the beginning
@@ -51,7 +50,9 @@ export default class Demo extends Phaser.Scene {
 		this.platformGenerationConfig = {minY: 32, maxY: CANVAS_HEIGHT - 32, minTiles: 3, maxTiles: 11};
 
 		this.projectiles = this.physics.add.group();
+		this.projectiles.maxSize = PROJECTILE.maxPoolCapacity;
 		this.projectiles.classType = Phaser.Physics.Arcade.Image;
+		this.projectiles.defaultKey = 'projectile';
 
         this.player = this.add.container(PLAYER.spawnX, PLAYER.spawnY);
 		this.player.width = PLAYER.width;
@@ -69,10 +70,6 @@ export default class Demo extends Phaser.Scene {
 		this.player.setData('trackPointer', false);
 		this.player.setDepth(3);
 		this.player.setInteractive();
-		
-		//this.initMap();
-		
-		//this.platform = this.add.rectangle((CANVAS_WIDTH / 2) - (pWidth / 2), CANVAS_HEIGHT - (FLOOR_HEIGHT*2), pWidth, FLOOR_HEIGHT, 0xaaa).setOrigin(0, 0)
 
         this.physics.add.existing(floor, true);
         this.physics.add.existing(this.player);
@@ -209,7 +206,8 @@ export default class Demo extends Phaser.Scene {
 				
 			//destroy projectile if it goes out of bounds
 			if (projectile instanceof Phaser.Physics.Arcade.Image && !this.isInBounds(projectile)) 
-				this.projectiles.remove(projectile,true,true);
+				// this.projectiles.remove(projectile,true,true);
+				this.projectiles.killAndHide(projectile)
 
 		}, this);
 	}
@@ -282,7 +280,14 @@ export default class Demo extends Phaser.Scene {
 					this.player.body.setVelocityY(rfY * PLAYER.recoilSpeed);
 
 					//create a new projectile at the position of the player
-					const projectile: Phaser.Physics.Arcade.Image = this.projectiles.create(this.player.body.x, this.player.body.y, 'projectile');
+					// const projectile: Phaser.Physics.Arcade.Image = this.projectiles.create(this.player.body.x, this.player.body.y, 'projectile');
+					const projectile: Phaser.Physics.Arcade.Image = this.projectiles.get(this.player.body.x, this.player.body.y);
+					if (!projectile)
+						return;
+
+					projectile.setVisible(true);
+					projectile.setActive(true);
+
 					if (projectile.body instanceof Phaser.Physics.Arcade.Body) {
 						//store the current angle of the player in state of projectile so we can set it in update loop
 						projectile.setState(this.player.body.rotation);
@@ -294,7 +299,6 @@ export default class Demo extends Phaser.Scene {
 					//since the projectile goes in an opposite direction to the player we set the recoil components to negative
 					projectile.setVelocityX(-rfX * PROJECTILE.speed);
 					projectile.setVelocityY(-rfY * PROJECTILE.speed);
-
 					
 				}
 					
