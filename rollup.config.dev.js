@@ -23,6 +23,10 @@ export default {
         intro: 'var global = window;'
     },
 
+    watch: {
+	exclude: ['src/template.ts', 'src/reset_demo.sh']
+    },
+
     plugins: [
 
         //  Toggle the booleans here to enable / disable Phaser 3 features:

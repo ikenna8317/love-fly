@@ -1,11 +1,12 @@
 //In-game constant values
 //---------------------
 
-import 'phaser'
+import 'phaser';
 
 interface GameConstants {
     CANVAS_WIDTH: number,
     CANVAS_HEIGHT: number,
+    CANVAS_BOUNDS_OFFSET: number,
     GRAVITY: number,
     PLAYER: { 
         width: number,
@@ -14,7 +15,7 @@ interface GameConstants {
         spawnY: number,
         speedX: number,
         jump: number,
-	recoilForce: number
+	recoilSpeed: number
      },
 
     ELEVATOR: {
@@ -24,23 +25,34 @@ interface GameConstants {
     FLOOR_HEIGHT: number,
     KEYS: {
 	    action: number
+    },
+    PLATFORM: {
+	    tileWidth: number,
+	    initScrollSpeedX: number,
+	    destroyBoundaryX: number,
+	    initEnemySpeedX: number,
+	    enemyDim: { width: number, height: number }
+    },
+    PROJECTILE: {
+        speed: number
     }
 
-}
+
+};
 
 const gameConstants: GameConstants = {
-    CANVAS_WIDTH: 800,
-    CANVAS_HEIGHT: 600,
+    CANVAS_WIDTH: 1024,
+    CANVAS_HEIGHT: 512,
+    CANVAS_BOUNDS_OFFSET: 32,
     GRAVITY: 300,
     PLAYER: {
-
         width: 32,
         height: 64,
         spawnX: 132,
         spawnY: 100,
         speedX: 175,
         jump: 170,
-	recoilForce: 250
+        recoilSpeed: 250
     },
     ELEVATOR: {
 	acceleration: 15
@@ -48,7 +60,17 @@ const gameConstants: GameConstants = {
     FLOOR_HEIGHT: 20,
     KEYS: {
 	    action: Phaser.Input.Keyboard.KeyCodes.S
+    },
+    PLATFORM: {
+	    tileWidth: 32,
+	    initScrollSpeedX: 2,
+	    destroyBoundaryX: 36,
+	    initEnemySpeedX: 5,
+	    enemyDim: { width: 32, height: 32 }
+    },
+    PROJECTILE: {
+        speed: 500
     }
-}
+};
 
 export default gameConstants
