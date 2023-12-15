@@ -12,83 +12,109 @@ const {
 } = gameConstants;
 
 export default class Demo extends Phaser.Scene {
-    player: Phaser.GameObjects.Container;
-	//tmap: Phaser.Tilemaps.Tilemap
-	platforms: Phaser.GameObjects.Group;
-	enemies: Phaser.GameObjects.Group;
-	projectiles: Phaser.Physics.Arcade.Group;
-	platformGenerationConfig: {minY: number, maxY: number, maxTiles: number, minTiles: number};
+    player: Phaser.GameObjects.Container;	//player state
+	platforms: Phaser.GameObjects.Group;	//platform tiles pool
+	enemies: Phaser.GameObjects.Group;		//enemies pool 
+	projectiles: Phaser.Physics.Arcade.Group;	//player single projectiles pool
+	platformGenerationConfig: {minY: number, maxY: number, maxTiles: number, minTiles: number};		//config data to set the bounds when dynamically creating platforms
 	
-	//platform: Phaser.GameObjects.Rectangle
-	cursorKeys: Phaser.Types.Input.Keyboard.CursorKeys;
-	trackPointerKey: Phaser.Input.Keyboard.Key;
-	sspeedMultiplier: number;
+	cursorKeys: Phaser.Types.Input.Keyboard.CursorKeys;		//cursor keys i.e. up, down, left, right, space, shift
+	trackPointerKey: Phaser.Input.Keyboard.Key;		//track pointer key is the key that when pressed enables the player to enter 'track pointer' mode
+	sspeedMultiplier: number;	//used to increase the scrolling speed of the platforms and enemies (and maybe later) over time
 
 	constructor() {
 		super('demo');
 	}
 
-	//only use this if you are importing external files like texture files
+	//load the necessary game files like images and spritesheets
 	preload(): void {
 		this.load.spritesheet('general_ts', 'tilesets/general_tileset_2.png', {frameWidth: 32, frameHeight: 34});
 		//this.load.image('beach_ts', 'beach_tileset_2.png');
 		this.load.image('projectile', 'laser_projectile.png');
 
-
 	}
 
-	//used to init the assets and configure the scene at the beginning
+	//init the assets and configure the scene at the beginning
 	create(): void {
-		
+		//A rectangular object with physics later enabled to prevent player from falling through
         const floor: Phaser.GameObjects.Rectangle = this.add.rectangle(0, CANVAS_HEIGHT - FLOOR_HEIGHT, CANVAS_WIDTH, FLOOR_HEIGHT, 0xd1e3ff).setOrigin(0, 0);
+		
+		//create the platforms and enemies group
 		this.platforms = this.add.group();
 		this.enemies = this.add.group();
+
+		//init the scroll speed multiplier
 		this.sspeedMultiplier = 1;
 	
+		//init the platforms group state
 		this.platforms.classType = Phaser.GameObjects.Image;
-		this.enemies.classType = Phaser.GameObjects.Image;
+		this.platforms.defaultKey = 'general_ts';
+		this.platforms.defaultFrame = 1;
+		this.platforms.maxSize = PLATFORM.maxTilePoolCapacity;
 
+		//init the enemies group state
+		this.enemies.classType = Phaser.GameObjects.Image;
+		this.enemies.defaultKey = 'enemy';
+		this.enemies.defaultFrame = 1;
+
+		//this is the max number of enemies that can be in the pool (active or inactive) at a time
+		this.enemies.maxSize = PLATFORM.maxEnemyPoolCapacity;
+
+		//init the config data (TODO: later i will move this to the main constants file)
 		this.platformGenerationConfig = {minY: 32, maxY: CANVAS_HEIGHT - 32, minTiles: 3, maxTiles: 11};
 
+		//init the enemies group state
 		this.projectiles = this.physics.add.group();
-		this.projectiles.classType = Phaser.Physics.Arcade.Image;
 
+		//this is the max number of projectiles that can be in the pool (active or inactive) at a time
+		this.projectiles.maxSize = PROJECTILE.maxPoolCapacity;
+
+		this.projectiles.classType = Phaser.Physics.Arcade.Image;
+		this.projectiles.defaultKey = 'projectile';
+
+		//create the player container which will be composed of the player body and a gun
         this.player = this.add.container(PLAYER.spawnX, PLAYER.spawnY);
 		this.player.width = PLAYER.width;
 		this.player.height = PLAYER.height;
 
-				
+		//in this case, we will use plain rectangles as placeholders for "player" and "gun"
 		const p: Phaser.GameObjects.Rectangle = this.add.rectangle(0, 0, PLAYER.width, PLAYER.height, 0xff5b3b);
 		const gun: Phaser.GameObjects.Rectangle = this.add.rectangle(16, -5, 32, 16, 0x32a52);
-
 		this.player.add(p);
 		this.player.add(gun);
 
+		//set the initial player state data
 		this.player.setDataEnabled();
-		this.player.setData('isGrounded', false);
-		this.player.setData('trackPointer', false);
-		this.player.setDepth(3);
-		this.player.setInteractive();
-		
-		//this.initMap();
-		
-		//this.platform = this.add.rectangle((CANVAS_WIDTH / 2) - (pWidth / 2), CANVAS_HEIGHT - (FLOOR_HEIGHT*2), pWidth, FLOOR_HEIGHT, 0xaaa).setOrigin(0, 0)
+		this.player.setData('isGrounded', false);	//tracks if the player is touching the ground or not
+		this.player.setData('trackPointer', false);		//tracks if the player is in "track pointer" mode
 
+		//set the depth of the player to highest so it can render over the background and platforms
+		this.player.setDepth(3);	
+
+		//make the player responsive to user input such as left, right
+		this.player.setInteractive();
+
+		//init the physics body of the floor and player
         this.physics.add.existing(floor, true);
         this.physics.add.existing(this.player);
-		//init the player physics
-		
+
 		if (this.player.body instanceof Phaser.Physics.Arcade.Body) {
+			//make the player unable to go beyond the screen
 			this.player.body.setCollideWorldBounds(true, 0, 0.2);
+
+			//set the horizontal drag of the player for a smoother horizontal movement
 			this.player.body.setDamping(true);
 			this.player.body.setDragX(0.15);
 
 		}
 	   
-
+		//a collider between the player and the floor
 		this.physics.add.collider(this.player, floor, () => {
+			//when the player touches the ground, the player is grounded and should not be in "track pointer" mode
 			this.player.setData('isGrounded', true);
 			this.player.setData('trackPointer', false);
+
+			//reset the rotation of the player to 0
 			if (this.player.body instanceof Phaser.Physics.Arcade.Body) 
 				this.player.body.rotation = 0;
 
@@ -99,21 +125,25 @@ export default class Demo extends Phaser.Scene {
 
 		// });
 
+		//create the cursor keys we will use to control the player
 		this.cursorKeys = this.input.keyboard.createCursorKeys();
 
-		this.cursorKeys.left.setEmitOnRepeat(true);
+
+		this.cursorKeys.left.setEmitOnRepeat(true);		//we want the left button to keep running even while it is pressed down
+		//as long as the left button is pressed down, flip the player and move the player leftward
 		this.cursorKeys.left.on('down', event => {
 			if (this.player.body instanceof Phaser.Physics.Arcade.Body)
 				this.player.body.setVelocityX(-1 * PLAYER.speedX);
 		});
 
-		this.cursorKeys.right.setEmitOnRepeat(true);
+		this.cursorKeys.right.setEmitOnRepeat(true);	//we want the right button to keep running even while it is pressed down
+		//as long as the right button is pressed down, move the player rightward
 		this.cursorKeys.right.on('down', event => {
 			if (this.player.body instanceof Phaser.Physics.Arcade.Body)
 				this.player.body.setVelocityX(PLAYER.speedX);
 		});
 
-		//enable air mode when you press the space button. Air mode enables the player to 
+		//enable air mode when you press the space button. Air mode enables the player to fire projectiles while in midair
 		this.cursorKeys.space.on('down', event => this.enableAirMode());
 
 		//the track pointer key, when pressed enables 'track pointer' mode which enables the player to rotate while
@@ -136,19 +166,22 @@ export default class Demo extends Phaser.Scene {
 		//choose a random number of tiles to build the platform with
 		const numOfTiles: number = Phaser.Math.RND.between(this.platformGenerationConfig.minTiles, this.platformGenerationConfig.maxTiles); 
 
-		//create the platforms
-		this.platforms.createFromConfig({
-			key: 'general_ts',
-			frame: 1,
-			setXY: {x: CANVAS_WIDTH+10, y: posY, stepX: PLATFORM.tileWidth},
-			quantity: numOfTiles
-		});
+		//use the tiles already in the pool, otherwise create new ones and populate the platforms
+		let x: number = CANVAS_WIDTH+10;
+		let tile: Phaser.GameObjects.Image = null;
 
-		
-		const enemy: Phaser.GameObjects.Image = this.add.image(CANVAS_WIDTH+12, posY-PLATFORM.enemyDim.height, 'enemy');
-		enemy.setDataEnabled();
+		for (let i= 0; i < numOfTiles; i++) {
+			tile = this.platforms.get(x, posY);
+			tile.setVisible(true);
+			tile.setActive(true);
+			x += PLATFORM.tileWidth;
+		}
+
+		//use an inactive enemy already in the enemy pool otherwise create a new one
+		const enemy: Phaser.GameObjects.Image = this.enemies.get(CANVAS_WIDTH+12, posY-PLATFORM.enemyDim.height);
 		enemy.setData({left: CANVAS_WIDTH+10, right: (CANVAS_WIDTH + 10) + numOfTiles*PLATFORM.tileWidth - PLATFORM.enemyDim.width, direction: 1});
-		this.enemies.add(enemy,true);
+		enemy.setVisible(true);
+		enemy.setActive(true);
 	}
 
 	updatePlatforms(): void {
@@ -166,7 +199,7 @@ export default class Demo extends Phaser.Scene {
 				if (enemy instanceof Phaser.GameObjects.Image) {
 					//if enemy goes past the destroy boundary then destroy the enemy
 					if (enemy.x < PLATFORM.destroyBoundaryX) { 
-						this.enemies.remove(enemy,true,true);
+						this.enemies.killAndHide(enemy);
 						return;
 					}
 					
@@ -188,10 +221,10 @@ export default class Demo extends Phaser.Scene {
 
 		//optimized removal of tiles, instead of checking every single tile per frame which is bad for performance,
 		// only check the very first platform tile in the platforms container
-		//and destroy it if it goes past the destroy boundary
+		//and deactivate it if it goes past the destroy boundary
 		const tile = this.platforms.getFirstAlive();
 		if (tile != null && tile.x < PLATFORM.destroyBoundaryX)
-			this.platforms.remove(tile, true, true);
+			this.platforms.killAndHide(tile);
 	}
 
 	//for every frame, for all projectiles, update position of projectile 
@@ -209,7 +242,8 @@ export default class Demo extends Phaser.Scene {
 				
 			//destroy projectile if it goes out of bounds
 			if (projectile instanceof Phaser.Physics.Arcade.Image && !this.isInBounds(projectile)) 
-				this.projectiles.remove(projectile,true,true);
+				// this.projectiles.remove(projectile,true,true);
+				this.projectiles.killAndHide(projectile)
 
 		}, this);
 	}
@@ -282,7 +316,14 @@ export default class Demo extends Phaser.Scene {
 					this.player.body.setVelocityY(rfY * PLAYER.recoilSpeed);
 
 					//create a new projectile at the position of the player
-					const projectile: Phaser.Physics.Arcade.Image = this.projectiles.create(this.player.body.x, this.player.body.y, 'projectile');
+					// const projectile: Phaser.Physics.Arcade.Image = this.projectiles.create(this.player.body.x, this.player.body.y, 'projectile');
+					const projectile: Phaser.Physics.Arcade.Image = this.projectiles.get(this.player.body.x, this.player.body.y);
+					if (!projectile)
+						return;
+
+					projectile.setVisible(true);
+					projectile.setActive(true);
+
 					if (projectile.body instanceof Phaser.Physics.Arcade.Body) {
 						//store the current angle of the player in state of projectile so we can set it in update loop
 						projectile.setState(this.player.body.rotation);
@@ -294,7 +335,6 @@ export default class Demo extends Phaser.Scene {
 					//since the projectile goes in an opposite direction to the player we set the recoil components to negative
 					projectile.setVelocityX(-rfX * PROJECTILE.speed);
 					projectile.setVelocityY(-rfY * PROJECTILE.speed);
-
 					
 				}
 					

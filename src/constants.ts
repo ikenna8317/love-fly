@@ -1,6 +1,5 @@
 //In-game constant values
 //---------------------
-
 import 'phaser';
 
 interface GameConstants {
@@ -28,13 +27,16 @@ interface GameConstants {
     },
     PLATFORM: {
 	    tileWidth: number,
+        maxTilePoolCapacity: number,
+        maxEnemyPoolCapacity: number,
 	    initScrollSpeedX: number,
 	    destroyBoundaryX: number,
 	    initEnemySpeedX: number,
 	    enemyDim: { width: number, height: number }
     },
     PROJECTILE: {
-        speed: number
+        speed: number,
+        maxPoolCapacity: number
     }
 
 
@@ -63,13 +65,16 @@ const gameConstants: GameConstants = {
     },
     PLATFORM: {
 	    tileWidth: 32,
+        maxTilePoolCapacity: 34,
+        maxEnemyPoolCapacity: 6,
 	    initScrollSpeedX: 2,
 	    destroyBoundaryX: 36,
 	    initEnemySpeedX: 5,
 	    enemyDim: { width: 32, height: 32 }
     },
     PROJECTILE: {
-        speed: 500
+        speed: 500,
+        maxPoolCapacity: 10
     }
 };
 
