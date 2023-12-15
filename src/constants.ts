@@ -68,7 +68,7 @@ const gameConstants: GameConstants = {
         maxTilePoolCapacity: 34,
         maxEnemyPoolCapacity: 6,
 	    initScrollSpeedX: 2,
-	    destroyBoundaryX: 36,
+	    destroyBoundaryX: -36,
 	    initEnemySpeedX: 5,
 	    enemyDim: { width: 32, height: 32 }
     },
@@ -78,4 +78,4 @@ const gameConstants: GameConstants = {
     }
 };
 
-export default gameConstants
+export default gameConstants;

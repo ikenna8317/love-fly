@@ -17,7 +17,7 @@ export default class Demo extends Phaser.Scene {
 	enemies: Phaser.GameObjects.Group;		//enemies pool 
 	projectiles: Phaser.Physics.Arcade.Group;	//player single projectiles pool
 	platformGenerationConfig: {minY: number, maxY: number, maxTiles: number, minTiles: number};		//config data to set the bounds when dynamically creating platforms
-	
+	counter: {platforms: number};
 	cursorKeys: Phaser.Types.Input.Keyboard.CursorKeys;		//cursor keys i.e. up, down, left, right, space, shift
 	trackPointerKey: Phaser.Input.Keyboard.Key;		//track pointer key is the key that when pressed enables the player to enter 'track pointer' mode
 	sspeedMultiplier: number;	//used to increase the scrolling speed of the platforms and enemies (and maybe later) over time
@@ -62,6 +62,9 @@ export default class Demo extends Phaser.Scene {
 
 		//init the config data (TODO: later i will move this to the main constants file)
 		this.platformGenerationConfig = {minY: 32, maxY: CANVAS_HEIGHT - 32, minTiles: 3, maxTiles: 11};
+
+		//set the number of present platforms to 0
+		this.counter = {platforms: 0};
 
 		//init the enemies group state
 		this.projectiles = this.physics.add.group();
@@ -128,7 +131,6 @@ export default class Demo extends Phaser.Scene {
 		//create the cursor keys we will use to control the player
 		this.cursorKeys = this.input.keyboard.createCursorKeys();
 
-
 		this.cursorKeys.left.setEmitOnRepeat(true);		//we want the left button to keep running even while it is pressed down
 		//as long as the left button is pressed down, flip the player and move the player leftward
 		this.cursorKeys.left.on('down', event => {
@@ -154,24 +156,26 @@ export default class Demo extends Phaser.Scene {
 				this.player.setData('trackPointer', true);
 		});
 
-		//create 2 simple platforms with patrolling 'enemies'
-		this.createPlatforms();
-		this.createPlatforms();
+		//create a repeating timed loop that dynamically creates new platforms
+		this.time.addEvent({delay: 2500, loop: true, callback: () => this.createPlatforms()});
 	   
 	}
 
 	createPlatforms(): void {
 		//choose a random height to create the new platform 
 		const posY: number = Phaser.Math.RND.between(this.platformGenerationConfig.minY, this.platformGenerationConfig.maxY);
+		
 		//choose a random number of tiles to build the platform with
 		const numOfTiles: number = Phaser.Math.RND.between(this.platformGenerationConfig.minTiles, this.platformGenerationConfig.maxTiles); 
 
-		//use the tiles already in the pool, otherwise create new ones and populate the platforms
+		//use inactive tiles already in the pool, otherwise create new ones and populate the platforms
 		let x: number = CANVAS_WIDTH+10;
 		let tile: Phaser.GameObjects.Image = null;
 
-		for (let i= 0; i < numOfTiles; i++) {
+		for (let i: number = 0; i < numOfTiles; i++) {
 			tile = this.platforms.get(x, posY);
+			if (!tile)
+				return;
 			tile.setVisible(true);
 			tile.setActive(true);
 			x += PLATFORM.tileWidth;
