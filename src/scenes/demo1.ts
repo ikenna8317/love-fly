@@ -8,16 +8,19 @@ const {
     FLOOR_HEIGHT,
 	PLAYER,
 	PLATFORM,
+	BGD_SCROLL_SPEED,
 	PROJECTILE
 } = gameConstants;
 
 export default class Demo extends Phaser.Scene {
-    player: Phaser.GameObjects.Container;	//player state
+    // player: Phaser.GameObjects.Container;	//player state
+	player: Phaser.GameObjects.Sprite;
 	platforms: Phaser.GameObjects.Group;	//platform tiles pool
+	bgd: Phaser.GameObjects.TileSprite;
 	enemies: Phaser.GameObjects.Group;		//enemies pool 
 	projectiles: Phaser.Physics.Arcade.Group;	//player single projectiles pool
 	platformGenerationConfig: {minY: number, maxY: number, maxTiles: number, minTiles: number};		//config data to set the bounds when dynamically creating platforms
-	counter: {platforms: number};
+	//counter: {platforms: number};
 	cursorKeys: Phaser.Types.Input.Keyboard.CursorKeys;		//cursor keys i.e. up, down, left, right, space, shift
 	trackPointerKey: Phaser.Input.Keyboard.Key;		//track pointer key is the key that when pressed enables the player to enter 'track pointer' mode
 	sspeedMultiplier: number;	//used to increase the scrolling speed of the platforms and enemies (and maybe later) over time
@@ -31,11 +34,26 @@ export default class Demo extends Phaser.Scene {
 		this.load.spritesheet('general_ts', 'tilesets/general_tileset_2.png', {frameWidth: 32, frameHeight: 34});
 		//this.load.image('beach_ts', 'beach_tileset_2.png');
 		this.load.image('projectile', 'laser_projectile.png');
+		this.load.image('bgd', 'bgd/beach_bgd.png');
+		this.load.spritesheet('player', 'run-ssheet-v3.png', {
+			frameWidth: 45,
+			frameHeight: 74,
+			startFrame: 0,
+			endFrame: 4
+		});
+		this.load.spritesheet('cykrab', 'cykrab_ssheet.png', {
+			frameWidth: 75,
+			frameHeight: 55,
+			startFrame: 0,
+			endFrame: 2
+		});
 
 	}
 
 	//init the assets and configure the scene at the beginning
 	create(): void {
+		this.bgd = this.add.tileSprite(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT, 'bgd').setOrigin(0,0);
+
 		//A rectangular object with physics later enabled to prevent player from falling through
         const floor: Phaser.GameObjects.Rectangle = this.add.rectangle(0, CANVAS_HEIGHT - FLOOR_HEIGHT, CANVAS_WIDTH, FLOOR_HEIGHT, 0xd1e3ff).setOrigin(0, 0);
 		
@@ -53,8 +71,8 @@ export default class Demo extends Phaser.Scene {
 		this.platforms.maxSize = PLATFORM.maxTilePoolCapacity;
 
 		//init the enemies group state
-		this.enemies.classType = Phaser.GameObjects.Image;
-		this.enemies.defaultKey = 'enemy';
+		this.enemies.classType = Phaser.GameObjects.Sprite;
+		this.enemies.defaultKey = 'cykrab';
 		this.enemies.defaultFrame = 1;
 
 		//this is the max number of enemies that can be in the pool (active or inactive) at a time
@@ -64,7 +82,7 @@ export default class Demo extends Phaser.Scene {
 		this.platformGenerationConfig = {minY: 32, maxY: CANVAS_HEIGHT - 32, minTiles: 3, maxTiles: 11};
 
 		//set the number of present platforms to 0
-		this.counter = {platforms: 0};
+		//this.counter = {platforms: 0};
 
 		//init the enemies group state
 		this.projectiles = this.physics.add.group();
@@ -76,15 +94,17 @@ export default class Demo extends Phaser.Scene {
 		this.projectiles.defaultKey = 'projectile';
 
 		//create the player container which will be composed of the player body and a gun
-        this.player = this.add.container(PLAYER.spawnX, PLAYER.spawnY);
-		this.player.width = PLAYER.width;
-		this.player.height = PLAYER.height;
+        // this.player = this.add.container(PLAYER.spawnX, PLAYER.spawnY);
+		this.player = this.add.sprite(PLAYER.spawnX, PLAYER.spawnY, 'player', 0);
+		// this.player.width = PLAYER.width;
+		// this.player.height = PLAYER.height;
 
 		//in this case, we will use plain rectangles as placeholders for "player" and "gun"
-		const p: Phaser.GameObjects.Rectangle = this.add.rectangle(0, 0, PLAYER.width, PLAYER.height, 0xff5b3b);
-		const gun: Phaser.GameObjects.Rectangle = this.add.rectangle(16, -5, 32, 16, 0x32a52);
-		this.player.add(p);
-		this.player.add(gun);
+
+		// const p: Phaser.GameObjects.Rectangle = this.add.rectangle(0, 0, PLAYER.width, PLAYER.height, 0xff5b3b);
+		// const gun: Phaser.GameObjects.Rectangle = this.add.rectangle(16, -5, 32, 16, 0x32a52);
+		// this.player.add(p);
+		// this.player.add(gun);
 
 		//set the initial player state data
 		this.player.setDataEnabled();
@@ -113,7 +133,17 @@ export default class Demo extends Phaser.Scene {
 	   
 		//a collider between the player and the floor
 		this.physics.add.collider(this.player, floor, () => {
-			//when the player touches the ground, the player is grounded and should not be in "track pointer" mode
+			//don't bother rerunning the collider script while the player is already grounded to improve performance
+			if (this.player.getData('isGrounded'))
+				return;
+
+		    //if player was in 'track pointer' mode then play the move animation from beginning, otherwise resume the move animation	
+			if (this.player.getData('trackPointer'))
+				this.player.anims.play('player_move');
+			else
+				this.player.anims.resume();
+
+			//let the game know that the player is currently grounded and not in track pointer mode
 			this.player.setData('isGrounded', true);
 			this.player.setData('trackPointer', false);
 
@@ -156,6 +186,16 @@ export default class Demo extends Phaser.Scene {
 				this.player.setData('trackPointer', true);
 		});
 
+		//setup the game animations
+		////-----------------------
+		this.player.anims.create({key: 'player_move', frames: this.anims.generateFrameNumbers('player', {start: 0, end: 3}), repeat: -1, frameRate: 16});
+		this.player.anims.create({key: 'player_stagger', frames: this.anims.generateFrameNumbers('player', {frames: [4]}), frameRate: 1});
+		this.anims.create({key: 'cykrab_move', frames: this.anims.generateFrameNumbers('cykrab', {start: 0, end: 2}), repeat: -1, frameRate: 10});
+		//this.anims.create({key: 'player_jump', frames: this.anims.generateFrameNumbers('player', {frames: [2]})});
+		//this.player.anims.chain(['player_move', 'player_stagger']);
+		this.player.anims.play('player_move');
+		//this.anims.play('cykrab_move', this.enemies.getChildren());
+
 		//create a repeating timed loop that dynamically creates new platforms
 		this.time.addEvent({delay: 2500, loop: true, callback: () => this.createPlatforms()});
 	   
@@ -182,10 +222,15 @@ export default class Demo extends Phaser.Scene {
 		}
 
 		//use an inactive enemy already in the enemy pool otherwise create a new one
-		const enemy: Phaser.GameObjects.Image = this.enemies.get(CANVAS_WIDTH+12, posY-PLATFORM.enemyDim.height);
+		const enemy: Phaser.GameObjects.Sprite = this.enemies.get(CANVAS_WIDTH+12, posY-PLATFORM.enemyDim.height);
+		if (!enemy)
+			return;
 		enemy.setData({left: CANVAS_WIDTH+10, right: (CANVAS_WIDTH + 10) + numOfTiles*PLATFORM.tileWidth - PLATFORM.enemyDim.width, direction: 1});
 		enemy.setVisible(true);
 		enemy.setActive(true);
+		
+		//play the enemy movement animation
+		enemy.anims.play('cykrab_move');
 	}
 
 	updatePlatforms(): void {
@@ -199,10 +244,16 @@ export default class Demo extends Phaser.Scene {
 
 		if (this.enemies.getLength() != 0) {
 			//for each enemy object
+			// TODO: later, imight further optimize the update loop by only checking if the first active enemy in the pool is beyond boundary
 			Phaser.Actions.Call(this.enemies.getChildren(), enemy => {
-				if (enemy instanceof Phaser.GameObjects.Image) {
-					//if enemy goes past the destroy boundary then destroy the enemy
-					if (enemy.x < PLATFORM.destroyBoundaryX) { 
+				//if the enemy is inactive in the pool, then skip it
+				if (!enemy.active)
+					return;	
+
+				if (enemy instanceof Phaser.GameObjects.Sprite) {
+					//if enemy goes past the destroy boundary then stop its current animation and deactivate and hide it
+					if (enemy.x < PLATFORM.destroyBoundaryX) {
+					    enemy.anims.stop();	
 						this.enemies.killAndHide(enemy);
 						return;
 					}
@@ -224,9 +275,9 @@ export default class Demo extends Phaser.Scene {
 		}
 
 		//optimized removal of tiles, instead of checking every single tile per frame which is bad for performance,
-		// only check the very first platform tile in the platforms container
+		// only check the very first active platform tile in the platforms container
 		//and deactivate it if it goes past the destroy boundary
-		const tile = this.platforms.getFirstAlive();
+		const tile: Phaser.GameObjects.Image = this.platforms.getFirstAlive();
 		if (tile != null && tile.x < PLATFORM.destroyBoundaryX)
 			this.platforms.killAndHide(tile);
 	}
@@ -240,6 +291,10 @@ export default class Demo extends Phaser.Scene {
 
 		//for each laser projectile
 		Phaser.Actions.Call(this.projectiles.getChildren(), projectile => {
+			//if the projectile is not currently active don't bother updating it every frame
+			if (!projectile.active)
+				return;
+			
 			if (projectile.body instanceof Phaser.Physics.Arcade.Body)
 				//update the angle of the projectile
 				projectile.body.rotation = projectile.state as number;
@@ -254,6 +309,8 @@ export default class Demo extends Phaser.Scene {
 
 	//update loop: called once per frame
 	update(): void {
+		//scroll the background left
+		this.bgd.tilePositionX += BGD_SCROLL_SPEED;
 
 		//update the scrolling platforms
 		this.updatePlatforms();
@@ -301,11 +358,12 @@ export default class Demo extends Phaser.Scene {
 
 	//handles the player jump and midair firing of projectiles
 	enableAirMode(): void {
-		if (this.player.body instanceof Phaser.Physics.Arcade.Body) {
+		if (this.player.body instanceof Phaser.Physics.Arcade.Body && this.player instanceof Phaser.GameObjects.Sprite) {
 
 			//if player is grounded i.e. not in midair then make the player jump
 			if (this.player.getData('isGrounded')) {
 				this.player.body.setVelocityY(-1 * PLAYER.jump);
+				this.player.anims.pause(this.player.anims.currentAnim.frames[2]);
 				this.player.setData('isGrounded', false);		
 			} 
 
@@ -314,14 +372,17 @@ export default class Demo extends Phaser.Scene {
 					
 					//get the recoil force/direction based on the orientation of the player with the mouse pointer
 					const { rfX, rfY }: { rfX: number, rfY: number } = this.calcRecoilForce();
-					
+							
 					//set the x and y velocity of the player to the product of the recoil direction and recoil speed
 					this.player.body.setVelocityX(rfX * PLAYER.recoilSpeed);
 					this.player.body.setVelocityY(rfY * PLAYER.recoilSpeed);
+					
+					console.debug(this.player.anims.get('player_stagger'));
+					this.player.anims.pause(this.player.anims.get('player_stagger').frames[0]);
 
 					//create a new projectile at the position of the player
 					// const projectile: Phaser.Physics.Arcade.Image = this.projectiles.create(this.player.body.x, this.player.body.y, 'projectile');
-					const projectile: Phaser.Physics.Arcade.Image = this.projectiles.get(this.player.body.x, this.player.body.y);
+					const projectile: Phaser.Physics.Arcade.Image = this.projectiles.get(this.player.x, this.player.y);
 					if (!projectile)
 						return;
 

@@ -34,6 +34,7 @@ interface GameConstants {
 	    initEnemySpeedX: number,
 	    enemyDim: { width: number, height: number }
     },
+    BGD_SCROLL_SPEED: number,
     PROJECTILE: {
         speed: number,
         maxPoolCapacity: number
@@ -72,6 +73,7 @@ const gameConstants: GameConstants = {
 	    initEnemySpeedX: 5,
 	    enemyDim: { width: 32, height: 32 }
     },
+    BGD_SCROLL_SPEED: 2,
     PROJECTILE: {
         speed: 500,
         maxPoolCapacity: 10
