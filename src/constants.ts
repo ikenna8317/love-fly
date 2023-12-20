@@ -5,6 +5,7 @@ import 'phaser';
 interface GameConstants {
     CANVAS_WIDTH: number,
     CANVAS_HEIGHT: number,
+    OVERLAY_HEIGHT: number,
     CANVAS_BOUNDS_OFFSET: number,
     GRAVITY: number,
     PLAYER: { 
@@ -46,6 +47,7 @@ interface GameConstants {
 const gameConstants: GameConstants = {
     CANVAS_WIDTH: 1024,
     CANVAS_HEIGHT: 512,
+    OVERLAY_HEIGHT: 299,
     CANVAS_BOUNDS_OFFSET: 32,
     GRAVITY: 300,
     PLAYER: {

@@ -4,6 +4,7 @@ import gameConstants from '../constants';
 const {
     CANVAS_HEIGHT,
     CANVAS_WIDTH,
+	OVERLAY_HEIGHT,
 	CANVAS_BOUNDS_OFFSET,
     FLOOR_HEIGHT,
 	PLAYER,
@@ -17,6 +18,8 @@ export default class Demo extends Phaser.Scene {
 	player: Phaser.GameObjects.Sprite;
 	platforms: Phaser.GameObjects.Group;	//platform tiles pool
 	bgd: Phaser.GameObjects.TileSprite;
+	overlay: Phaser.GameObjects.TileSprite;
+	scrollSpeed: {bgd: number, overlay: number};
 	enemies: Phaser.GameObjects.Group;		//enemies pool 
 	projectiles: Phaser.Physics.Arcade.Group;	//player single projectiles pool
 	platformGenerationConfig: {minY: number, maxY: number, maxTiles: number, minTiles: number};		//config data to set the bounds when dynamically creating platforms
@@ -35,6 +38,7 @@ export default class Demo extends Phaser.Scene {
 		//this.load.image('beach_ts', 'beach_tileset_2.png');
 		this.load.image('projectile', 'laser_projectile.png');
 		this.load.image('bgd', 'bgd/beach_bgd.png');
+		this.load.image('overlay', 'bgd/lagoon-overlay.png');
 		this.load.spritesheet('player', 'run-ssheet-v3.png', {
 			frameWidth: 45,
 			frameHeight: 74,
@@ -47,12 +51,27 @@ export default class Demo extends Phaser.Scene {
 			startFrame: 0,
 			endFrame: 2
 		});
+		this.load.spritesheet('dust_trail', 'dust-trail.png', {
+			frameWidth: 54,
+			frameHeight: 20,
+			startFrame: 0,
+			endFrame: 1
+		});
 
 	}
 
 	//init the assets and configure the scene at the beginning
 	create(): void {
+		//init the background and overlay and set the horizontal scrolling speed
 		this.bgd = this.add.tileSprite(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT, 'bgd').setOrigin(0,0);
+		this.overlay = this.add.tileSprite(0, CANVAS_HEIGHT-OVERLAY_HEIGHT, CANVAS_WIDTH, OVERLAY_HEIGHT, 'overlay').setOrigin(0,0); 
+
+		//we want the overlay to scroll twice as fast as the background to induce that nice parallax effect but feel free to tweak this to your liking
+		//also notice we are setting this parameter in the create method and not in the update loop/method, this is because the create method is called only once after the game has loaded
+		//b4 the game begins, while the update loop is called once per frame depending on the frame rate so if our game was 24 fps for example, we will be calculating 2 * BGD_SCROLL_SPEED
+		//24 times per second which modern CPUs can handle easily but its redundant and so we chose to instead calculate it here and store it in memory to save some extra milli or nanoseconds
+		// of processing hence a simple optimization trick you need to always watch out for
+		this.scrollSpeed = {bgd: BGD_SCROLL_SPEED, overlay: BGD_SCROLL_SPEED * 2};
 
 		//A rectangular object with physics later enabled to prevent player from falling through
         const floor: Phaser.GameObjects.Rectangle = this.add.rectangle(0, CANVAS_HEIGHT - FLOOR_HEIGHT, CANVAS_WIDTH, FLOOR_HEIGHT, 0xd1e3ff).setOrigin(0, 0);
@@ -81,7 +100,7 @@ export default class Demo extends Phaser.Scene {
 		//init the config data (TODO: later i will move this to the main constants file)
 		this.platformGenerationConfig = {minY: 32, maxY: CANVAS_HEIGHT - 32, minTiles: 3, maxTiles: 11};
 
-		//set the number of present platforms to 0
+		//[redacted] set the number of present platforms to 0
 		//this.counter = {platforms: 0};
 
 		//init the enemies group state
@@ -289,7 +308,7 @@ export default class Demo extends Phaser.Scene {
 		if (this.projectiles.getLength() === 0)
 			return;
 
-		//for each laser projectile
+		//for each fired projectile
 		Phaser.Actions.Call(this.projectiles.getChildren(), projectile => {
 			//if the projectile is not currently active don't bother updating it every frame
 			if (!projectile.active)
@@ -299,7 +318,7 @@ export default class Demo extends Phaser.Scene {
 				//update the angle of the projectile
 				projectile.body.rotation = projectile.state as number;
 				
-			//destroy projectile if it goes out of bounds
+			//deactivate projectile and send it back to the pool for recycling if it goes out of bounds
 			if (projectile instanceof Phaser.Physics.Arcade.Image && !this.isInBounds(projectile)) 
 				// this.projectiles.remove(projectile,true,true);
 				this.projectiles.killAndHide(projectile)
@@ -309,8 +328,9 @@ export default class Demo extends Phaser.Scene {
 
 	//update loop: called once per frame
 	update(): void {
-		//scroll the background left
-		this.bgd.tilePositionX += BGD_SCROLL_SPEED;
+		//scroll the background and overlay leftward
+		this.bgd.tilePositionX += this.scrollSpeed.bgd;
+		this.overlay.tilePositionX += this.scrollSpeed.overlay;
 
 		//update the scrolling platforms
 		this.updatePlatforms();
