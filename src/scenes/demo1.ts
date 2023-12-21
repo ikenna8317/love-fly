@@ -15,7 +15,7 @@ const {
 
 export default class Demo extends Phaser.Scene {
     // player: Phaser.GameObjects.Container;	//player state
-	player: Phaser.GameObjects.Sprite;
+	player: Phaser.GameObjects.Container;
 	platforms: Phaser.GameObjects.Group;	//platform tiles pool
 	bgd: Phaser.GameObjects.TileSprite;
 	overlay: Phaser.GameObjects.TileSprite;
@@ -39,12 +39,25 @@ export default class Demo extends Phaser.Scene {
 		this.load.image('projectile', 'laser_projectile.png');
 		this.load.image('bgd', 'bgd/beach_bgd.png');
 		this.load.image('overlay', 'bgd/lagoon-overlay.png');
-		this.load.spritesheet('player', 'run-ssheet-v3.png', {
+		this.load.spritesheet('player', 'p-run-ssheet.png', {
 			frameWidth: 45,
 			frameHeight: 74,
 			startFrame: 0,
 			endFrame: 4
 		});
+	this.load.spritesheet('hands', 'hands-ssheet.png', {
+			frameWidth: 19,
+			frameHeight: 23,
+			startFrame: 0,
+			endFrame: 1
+		});
+		this.load.spritesheet('gun', 'pgun-ssheet.png', {
+			frameWidth: 41,
+			frameHeight: 21,
+			startFrame: 0,
+			endFrame: 1
+		});
+
 		this.load.spritesheet('cykrab', 'cykrab_ssheet.png', {
 			frameWidth: 75,
 			frameHeight: 55,
@@ -75,7 +88,8 @@ export default class Demo extends Phaser.Scene {
 
 		//A rectangular object with physics later enabled to prevent player from falling through
         const floor: Phaser.GameObjects.Rectangle = this.add.rectangle(0, CANVAS_HEIGHT - FLOOR_HEIGHT, CANVAS_WIDTH, FLOOR_HEIGHT, 0xd1e3ff).setOrigin(0, 0);
-		
+		floor.setVisible(false);	
+
 		//create the platforms and enemies group
 		this.platforms = this.add.group();
 		this.enemies = this.add.group();
@@ -113,17 +127,26 @@ export default class Demo extends Phaser.Scene {
 		this.projectiles.defaultKey = 'projectile';
 
 		//create the player container which will be composed of the player body and a gun
-        // this.player = this.add.container(PLAYER.spawnX, PLAYER.spawnY);
-		this.player = this.add.sprite(PLAYER.spawnX, PLAYER.spawnY, 'player', 0);
-		// this.player.width = PLAYER.width;
-		// this.player.height = PLAYER.height;
+        this.player = this.add.container(PLAYER.spawnX, PLAYER.spawnY);
+		//this.player = this.add.sprite(PLAYER.spawnX, PLAYER.spawnY, 'player', 0);
+		this.player.width = PLAYER.width;
+		this.player.height = PLAYER.height;
 
-		//in this case, we will use plain rectangles as placeholders for "player" and "gun"
+		const body: Phaser.GameObjects.Sprite = this.add.sprite(0, 0, 'player', 0);
+		body.setName('body');
+		const gun: Phaser.GameObjects.Sprite = this.add.sprite(0, 0, 'gun', 0);
+		gun.setName('gun');
+		const hands: Phaser.GameObjects.Sprite = this.add.sprite(1, -2, 'hands', 0);
+		hands.setName('hands');
+		const dustTrail: Phaser.GameObjects.Sprite = this.add.sprite(-PLAYER.width/2, PLAYER.height/2 - 4, 'dust_trail');
+		dustTrail.setName('dust');
 
-		// const p: Phaser.GameObjects.Rectangle = this.add.rectangle(0, 0, PLAYER.width, PLAYER.height, 0xff5b3b);
-		// const gun: Phaser.GameObjects.Rectangle = this.add.rectangle(16, -5, 32, 16, 0x32a52);
-		// this.player.add(p);
-		// this.player.add(gun);
+		//const p: Phaser.GameObjects.Sprite = this.add.rectangle(0, 0, PLAYER.width, PLAYER.height, 0xff5b3b);
+		//const gun: Phaser.GameObjects.Rectangle = this.add.rectangle(16, -5, 32, 16, 0x32a52);
+		this.player.add(body);
+		this.player.add(gun);
+		this.player.add(hands);
+		this.player.add(dustTrail);
 
 		//set the initial player state data
 		this.player.setDataEnabled();
@@ -156,11 +179,31 @@ export default class Demo extends Phaser.Scene {
 			if (this.player.getData('isGrounded'))
 				return;
 
+			this.player.getByName('dust').setActive(true);
+			//@ts-ignore
+			this.player.getByName('dust').setVisible(true);
+
+			//since at the beginning when the player is spawned mid air we set this here so that if the dust trail animation isn't already playing we can play it like this
+			//@ts-ignore
+			if (!this.player.getByName('dust').anims.isPlaying)
+				//@ts-ignore
+				this.player.getByName('dust').anims.play('trail_dust');
+
 		    //if player was in 'track pointer' mode then play the move animation from beginning, otherwise resume the move animation	
-			if (this.player.getData('trackPointer'))
-				this.player.anims.play('player_move');
-			else
-				this.player.anims.resume();
+			//const pbody: Phaser.GameObjects.Sprite = this.player.getAt(2) as Phaser.GameObjects.Sprite;
+			if (this.player.getData('trackPointer')) { 	
+				//@ts-ignore: Container only returns objects of type 'GameObject' and so fails compilation when accessing 'anims' property and type assertion does not work
+				//but we are certain they are all sprites
+				this.player.getByName('body').anims.play('player_move');
+				//@ts-ignore
+				this.player.getByName('gun').anims.play('gun_move');
+				//@ts-ignore
+				this.player.getByName('hands').anims.play('hands_move');
+				//this.player.getByName('dust').anims.play('trail_dust');
+			} else {
+				//@ts-ignore
+				this.player.iterate(part => part.anims.resume());			
+			}
 
 			//let the game know that the player is currently grounded and not in track pointer mode
 			this.player.setData('isGrounded', true);
@@ -207,12 +250,37 @@ export default class Demo extends Phaser.Scene {
 
 		//setup the game animations
 		////-----------------------
-		this.player.anims.create({key: 'player_move', frames: this.anims.generateFrameNumbers('player', {start: 0, end: 3}), repeat: -1, frameRate: 16});
-		this.player.anims.create({key: 'player_stagger', frames: this.anims.generateFrameNumbers('player', {frames: [4]}), frameRate: 1});
+		//player body animations
+		//@ts-ignore: Bypass type checking because i am sure all gameobjects in the 'player' container are sprites and not base 'gameobjects'
+		this.player.getByName('body').anims.create({key: 'player_move', frames: this.anims.generateFrameNumbers('player', {start: 0, end: 3}), repeat: -1, frameRate: 16});
+		//@ts-ignore: Same as comment above
+		this.player.getByName('body').anims.create({key: 'player_stagger', frames: this.anims.generateFrameNumbers('player', {frames: [4]}), frameRate: 1});
+		
+		//gun animations
+		//@ts-ignore: same as above
+		this.player.getByName('gun').anims.create({key: 'gun_move', frames: this.anims.generateFrameNumbers('gun', {start: 0, end: 1}), repeat: -1, frameRate: 8});
+
+		//hand animations
+		//@ts-ignore: same as comments above
+		this.player.getByName('hands').anims.create({key: 'hands_move', frames: this.anims.generateFrameNumbers('hands', {start: 0, end: 1}), repeat: -1, frameRate: 8});
+
+		//@ts-ignore
+		this.player.getByName('dust').anims.create({key: 'trail_dust', frames: this.anims.generateFrameNumbers('dust_trail', {start: 0, end: 1}), repeat: -1, frameRate: 8});
+
 		this.anims.create({key: 'cykrab_move', frames: this.anims.generateFrameNumbers('cykrab', {start: 0, end: 2}), repeat: -1, frameRate: 10});
 		//this.anims.create({key: 'player_jump', frames: this.anims.generateFrameNumbers('player', {frames: [2]})});
 		//this.player.anims.chain(['player_move', 'player_stagger']);
-		this.player.anims.play('player_move');
+		//@ts-ignore: same as comment above
+		this.player.getByName('body').anims.play('player_move');
+		//@ts-ignore
+		this.player.getByName('gun').anims.play('gun_move');
+		//@ts-ignore
+		this.player.getByName('hands').anims.play('hands_move');
+
+		//hide the dust trail in the beginning while the player has not landed on the ground
+		//@ts-ignore
+		this.player.getByName('dust').setVisible(false);
+		this.player.getByName('dust').setActive(false);
 		//this.anims.play('cykrab_move', this.enemies.getChildren());
 
 		//create a repeating timed loop that dynamically creates new platforms
@@ -378,12 +446,26 @@ export default class Demo extends Phaser.Scene {
 
 	//handles the player jump and midair firing of projectiles
 	enableAirMode(): void {
-		if (this.player.body instanceof Phaser.Physics.Arcade.Body && this.player instanceof Phaser.GameObjects.Sprite) {
+		if (this.player.body instanceof Phaser.Physics.Arcade.Body) {
 
 			//if player is grounded i.e. not in midair then make the player jump
 			if (this.player.getData('isGrounded')) {
 				this.player.body.setVelocityY(-1 * PLAYER.jump);
-				this.player.anims.pause(this.player.anims.currentAnim.frames[2]);
+				//@ts-ignore: Bypass type checking since we are sure that the object returned by getAt() is a sprite and not a base gameobject specified by the phase docs
+				//now we can call the 'anims' property without running into a type error
+				this.player.getByName('body').anims.pause(this.player.getByName('body').anims.currentAnim.frames[2]);
+				//@ts-ignore
+				this.player.getByName('gun').anims.pause(this.player.getByName('gun').anims.currentAnim.frames[0]);
+				//@ts-ignore
+				this.player.getByName('hands').anims.pause(this.player.getByName('hands').anims.currentAnim.frames[0]);
+				
+				//pause and hide the trail dust animation
+				//@ts-ignore
+				this.player.getByName('dust').anims.pause();
+				//@ts-ignore
+				this.player.getByName('dust').setVisible(false);
+				this.player.getByName('dust').setActive(false);
+
 				this.player.setData('isGrounded', false);		
 			} 
 
@@ -396,9 +478,10 @@ export default class Demo extends Phaser.Scene {
 					//set the x and y velocity of the player to the product of the recoil direction and recoil speed
 					this.player.body.setVelocityX(rfX * PLAYER.recoilSpeed);
 					this.player.body.setVelocityY(rfY * PLAYER.recoilSpeed);
-					
-					console.debug(this.player.anims.get('player_stagger'));
-					this.player.anims.pause(this.player.anims.get('player_stagger').frames[0]);
+				
+					//console.debug(this.player.getAt(2).anims.get('player_stagger'));
+					//@ts-ignore: same as above
+					this.player.getByName('body').anims.pause(this.player.getByName('body').anims.get('player_stagger').frames[0]);
 
 					//create a new projectile at the position of the player
 					// const projectile: Phaser.Physics.Arcade.Image = this.projectiles.create(this.player.body.x, this.player.body.y, 'projectile');
