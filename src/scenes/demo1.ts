@@ -5,12 +5,14 @@ const {
     CANVAS_HEIGHT,
     CANVAS_WIDTH,
 	OVERLAY_HEIGHT,
+	PLAYER_ICON,
 	CANVAS_BOUNDS_OFFSET,
     FLOOR_HEIGHT,
 	PLAYER,
 	PLATFORM,
 	BGD_SCROLL_SPEED,
-	PROJECTILE
+	PROJECTILE,
+	ENEMY
 } = gameConstants;
 
 export default class Demo extends Phaser.Scene {
@@ -18,15 +20,26 @@ export default class Demo extends Phaser.Scene {
 	player: Phaser.GameObjects.Container;
 	platforms: Phaser.GameObjects.Group;	//platform tiles pool
 	bgd: Phaser.GameObjects.TileSprite;
+	//floor: Phaser.GameObjects.Rectangle;
 	overlay: Phaser.GameObjects.TileSprite;
 	scrollSpeed: {bgd: number, overlay: number};
 	enemies: Phaser.GameObjects.Group;		//enemies pool 
 	projectiles: Phaser.Physics.Arcade.Group;	//player single projectiles pool
+	uiLayer: Phaser.GameObjects.Layer;
+	//floorSmokes: Phaser.GameObjects.Group;	//pool for the floor smokes that spawn when the projectiles overlap the floor
+
+	healthBar: Phaser.GameObjects.Rectangle;
 	platformGenerationConfig: {minY: number, maxY: number, maxTiles: number, minTiles: number};		//config data to set the bounds when dynamically creating platforms
 	//counter: {platforms: number};
 	cursorKeys: Phaser.Types.Input.Keyboard.CursorKeys;		//cursor keys i.e. up, down, left, right, space, shift
 	trackPointerKey: Phaser.Input.Keyboard.Key;		//track pointer key is the key that when pressed enables the player to enter 'track pointer' mode
 	sspeedMultiplier: number;	//used to increase the scrolling speed of the platforms and enemies (and maybe later) over time
+
+	//tweens
+	//------
+	playerFlashTween: Phaser.Tweens.Tween;
+	healthBarDropTween: Phaser.Tweens.Tween;
+
 
 	constructor() {
 		super('demo');
@@ -34,18 +47,19 @@ export default class Demo extends Phaser.Scene {
 
 	//load the necessary game files like images and spritesheets
 	preload(): void {
+		this.load.image('player_icon', 'lovelight-icon.png');
 		this.load.spritesheet('general_ts', 'tilesets/general_tileset_2.png', {frameWidth: 32, frameHeight: 34});
 		//this.load.image('beach_ts', 'beach_tileset_2.png');
 		this.load.image('projectile', 'laser_projectile.png');
 		this.load.image('bgd', 'bgd/beach_bgd.png');
 		this.load.image('overlay', 'bgd/lagoon-overlay.png');
+		this.load.image('floor_smoke', 'floor_smoke.png');
 		this.load.spritesheet('player', 'p-run-ssheet.png', {
 			frameWidth: 45,
 			frameHeight: 74,
 			startFrame: 0,
-			endFrame: 4
 		});
-	this.load.spritesheet('hands', 'hands-ssheet.png', {
+		this.load.spritesheet('hands', 'hands-ssheet.png', {
 			frameWidth: 19,
 			frameHeight: 23,
 			startFrame: 0,
@@ -70,6 +84,12 @@ export default class Demo extends Phaser.Scene {
 			startFrame: 0,
 			endFrame: 1
 		});
+		this.load.spritesheet('poof', 'poof.png', {
+			frameWidth: 32,
+			frameHeight: 32,
+			startFrame: 0,
+			endFrame: 1
+		});
 
 	}
 
@@ -86,13 +106,21 @@ export default class Demo extends Phaser.Scene {
 		// of processing hence a simple optimization trick you need to always watch out for
 		this.scrollSpeed = {bgd: BGD_SCROLL_SPEED, overlay: BGD_SCROLL_SPEED * 2};
 
+		//TODO: setup the health bar and player icon
+		const playerIcon: Phaser.GameObjects.Image = this.add.image(50, 50, 'player_icon').setOrigin(0,0);
+		this.healthBar = this.add.rectangle(50 + PLAYER_ICON.width, 50, PLAYER.health, PLAYER_ICON.height/2, 0x09D805).setOrigin(0,0);
+		
+		this.uiLayer = this.add.layer([playerIcon, this.healthBar]);
+		//this.uiLayer.add([playerIcon, this.healthBar]);
+		this.uiLayer.setDepth(11);
+
 		//A rectangular object with physics later enabled to prevent player from falling through
         const floor: Phaser.GameObjects.Rectangle = this.add.rectangle(0, CANVAS_HEIGHT - FLOOR_HEIGHT, CANVAS_WIDTH, FLOOR_HEIGHT, 0xd1e3ff).setOrigin(0, 0);
 		floor.setVisible(false);	
 
 		//create the platforms and enemies group
 		this.platforms = this.add.group();
-		this.enemies = this.add.group();
+		this.enemies = this.physics.add.staticGroup();
 
 		//init the scroll speed multiplier
 		this.sspeedMultiplier = 1;
@@ -117,21 +145,31 @@ export default class Demo extends Phaser.Scene {
 		//[redacted] set the number of present platforms to 0
 		//this.counter = {platforms: 0};
 
-		//init the enemies group state
+		//init the projectiles group
 		this.projectiles = this.physics.add.group();
 
 		//this is the max number of projectiles that can be in the pool (active or inactive) at a time
 		this.projectiles.maxSize = PROJECTILE.maxPoolCapacity;
 
+		//the projectile will be rendered as an image and not a sprite since it has no animations
 		this.projectiles.classType = Phaser.Physics.Arcade.Image;
 		this.projectiles.defaultKey = 'projectile';
 
-		//create the player container which will be composed of the player body and a gun
+		/*
+		this.floorSmokes = this.add.group();
+		this.floorSmokes.maxSize = 5;
+		this.floorSmokes.classType = Phaser.GameObjects.Image;
+		this.floorSmokes.defaultKey = 'floor_smoke';
+		*/
+
+		//we created the player as a container of game objects instead of a regular sprite because in the future we would like to be able to customize the player's attributes
+		//such as clothes, type of guns etc and to do so efficiently would mean to split the player into several components to allow easier customization and mix and match
         this.player = this.add.container(PLAYER.spawnX, PLAYER.spawnY);
 		//this.player = this.add.sprite(PLAYER.spawnX, PLAYER.spawnY, 'player', 0);
 		this.player.width = PLAYER.width;
 		this.player.height = PLAYER.height;
 
+		//create the sprite body parts that make up the player
 		const body: Phaser.GameObjects.Sprite = this.add.sprite(0, 0, 'player', 0);
 		body.setName('body');
 		const gun: Phaser.GameObjects.Sprite = this.add.sprite(0, 0, 'gun', 0);
@@ -141,8 +179,7 @@ export default class Demo extends Phaser.Scene {
 		const dustTrail: Phaser.GameObjects.Sprite = this.add.sprite(-PLAYER.width/2, PLAYER.height/2 - 4, 'dust_trail');
 		dustTrail.setName('dust');
 
-		//const p: Phaser.GameObjects.Sprite = this.add.rectangle(0, 0, PLAYER.width, PLAYER.height, 0xff5b3b);
-		//const gun: Phaser.GameObjects.Rectangle = this.add.rectangle(16, -5, 32, 16, 0x32a52);
+		//add the sprite parts to the player container
 		this.player.add(body);
 		this.player.add(gun);
 		this.player.add(hands);
@@ -152,6 +189,8 @@ export default class Demo extends Phaser.Scene {
 		this.player.setDataEnabled();
 		this.player.setData('isGrounded', false);	//tracks if the player is touching the ground or not
 		this.player.setData('trackPointer', false);		//tracks if the player is in "track pointer" mode
+		this.player.setData('health', PLAYER.health);	//tracks the health level of the player. As long as the health is greater than 0, the game continues
+		this.player.setState(0);	//the state of the player tracks whether the player is hit by an enemy or projectile or not hit. 1 when hit and 0 when not
 
 		//set the depth of the player to highest so it can render over the background and platforms
 		this.player.setDepth(3);	
@@ -173,6 +212,8 @@ export default class Demo extends Phaser.Scene {
 
 		}
 	   
+		//setting up the colliders
+		//-------------------------
 		//a collider between the player and the floor
 		this.physics.add.collider(this.player, floor, () => {
 			//don't bother rerunning the collider script while the player is already grounded to improve performance
@@ -215,10 +256,88 @@ export default class Demo extends Phaser.Scene {
 
 		});
 
-		//NOTE: add this later
-		// this.physics.add.collider(this.projectiles, this.enemies, () => {
+		/*
+		 //NOTE: might have to set the classtype of projectiles as sprites later
+		this.physics.add.collider(this.projectiles, floor, (floor, projectile) => {
+			//if (projectile instanceof Phaser.Physics.Arcade.Body) {
+				console.log('projectile properly collided');
+				//console.log(projectile);
+				//console.log(floor);
+				//return;
+				//Again, Phaser incorrectly set the return value of a property to be a general 'GameObject' that lacks many properties instead of a union of possible types that can
+				//easily be assserted so typescript will keep throwing errors unless i explicitly ignore it 
+				
+				//console.log(projectile.gameObject);
+				//return;
+				//@ts-ignore
+				projectile.setTexture('floor_smoke');
+				//projectile.gameObject.setActive(false);
+				const floorSmokeEvent: Phaser.Time.TimerEvent = this.time.addEvent({ delay: 100, callback: () => {
+					//projectile.setTexture('projectile');
+					this.projectiles.killAndHide(projectile);
+				}});
+				this.time.removeEvent(floorSmokeEvent);
+			//}
+		});
+	  */
 
-		// });
+		//check for when a projectile overlaps (hits) an enemy 
+		 this.physics.add.overlap(this.projectiles, this.enemies, (projectile, enemy) => {
+			if (!enemy.active)
+				return;
+			 //console.log('killed an enemy');
+			 //deactivate and hide the projectile to be recycled back in the loop
+			this.projectiles.killAndHide(projectile);
+			//@ts-ignore: Workaround an unidentified type to prevent typescript from throwing error
+			//play the 'poof' smoke animation on the enemy
+			enemy.anims.play('poof');
+			//@ts-ignore
+			//once the animation finishes, deactivate and hide the enemy to be recycled back in the pool
+			enemy.on('animationcomplete', event => this.enemies.killAndHide(enemy));
+		});
+
+		//collider between player and enemy, for now we will only cause a certain animation frame to pop up on collision, TODO: later on w will implement a proper
+		//health system where after a certain number of collisions the player passes out and the scene ends or restarts
+		this.physics.add.overlap(this.player, this.enemies, (player, enemy) => {
+			//if enemy is not active or player has very recently been hit then exit
+			if (!enemy.active || player.state)
+				return;
+
+			player.setState(1);		//signify that the player has been hit
+			setTimeout(() => {
+				player.setState(0);
+				//@ts-ignore
+				player.setAlpha(1);
+				this.tweens.remove(this.playerFlashTween);
+				this.tweens.remove(this.healthBarDropTween);
+			}, 2500);		//make the player 'unhit' after 2.5s has elapsed
+
+			const newHealth: number = this.player.getData('health') - ENEMY.damage;
+
+			this.playerFlashTween = this.tweens.addCounter({from: 0, to: 1, duration: 500, loop: 3});
+			
+			if (newHealth > 0) {
+				this.healthBarDropTween = this.tweens.addCounter({from: this.player.getData('health'), to: newHealth, duration: 250});
+				this.player.setData('health', newHealth);
+			}
+			//TODO: later add an else to handle the scenario where player loses all her health i.e. game over
+
+			const duration: number = 100;
+			//@ts-ignore
+			//player.getByName('body').anims.pause();
+			player.getByName('body').anims.pause(player.getByName('body').anims.get('player_hit').frames[0]);
+	
+			//give the player a small push back
+			//@ts-ignore
+			player.body.setVelocityX(-100);
+
+			if (player.getData('isGrounded'))
+				//@ts-ignore
+				player.getByName('body').anims.playAfterDelay('player_move', duration);
+			else 
+				//@ts-ignore
+				setTimeout(() => player.getByName('body').anims.resume(), duration);		
+		});
 
 		//create the cursor keys we will use to control the player
 		this.cursorKeys = this.input.keyboard.createCursorKeys();
@@ -237,7 +356,7 @@ export default class Demo extends Phaser.Scene {
 				this.player.body.setVelocityX(PLAYER.speedX);
 		});
 
-		//enable air mode when you press the space button. Air mode enables the player to fire projectiles while in midair
+		//enable air mode when you press the space button. Air mode enables the player to jump and fire projectiles while in midair
 		this.cursorKeys.space.on('down', event => this.enableAirMode());
 
 		//the track pointer key, when pressed enables 'track pointer' mode which enables the player to rotate while
@@ -255,7 +374,9 @@ export default class Demo extends Phaser.Scene {
 		this.player.getByName('body').anims.create({key: 'player_move', frames: this.anims.generateFrameNumbers('player', {start: 0, end: 3}), repeat: -1, frameRate: 16});
 		//@ts-ignore: Same as comment above
 		this.player.getByName('body').anims.create({key: 'player_stagger', frames: this.anims.generateFrameNumbers('player', {frames: [4]}), frameRate: 1});
-		
+		//@ts-ignore
+		this.player.getByName('body').anims.create({key: 'player_hit', frames: this.anims.generateFrameNumbers('player', {frames: [5]}), frameRate: 1});
+
 		//gun animations
 		//@ts-ignore: same as above
 		this.player.getByName('gun').anims.create({key: 'gun_move', frames: this.anims.generateFrameNumbers('gun', {start: 0, end: 1}), repeat: -1, frameRate: 8});
@@ -267,7 +388,9 @@ export default class Demo extends Phaser.Scene {
 		//@ts-ignore
 		this.player.getByName('dust').anims.create({key: 'trail_dust', frames: this.anims.generateFrameNumbers('dust_trail', {start: 0, end: 1}), repeat: -1, frameRate: 8});
 
+
 		this.anims.create({key: 'cykrab_move', frames: this.anims.generateFrameNumbers('cykrab', {start: 0, end: 2}), repeat: -1, frameRate: 10});
+		this.anims.create({key: 'poof', frames: this.anims.generateFrameNumbers('poof', {start: 0, end: 1}), frameRate: 8});
 		//this.anims.create({key: 'player_jump', frames: this.anims.generateFrameNumbers('player', {frames: [2]})});
 		//this.player.anims.chain(['player_move', 'player_stagger']);
 		//@ts-ignore: same as comment above
@@ -353,9 +476,13 @@ export default class Demo extends Phaser.Scene {
 						enemy.setData('direction', -1);
 
 					//manually move the enemys current x position and its left and right boundary left
-					enemy.setX(enemy.x + PLATFORM.initEnemySpeedX * this.sspeedMultiplier * enemy.getData('direction'));
+					enemy.setX(enemy.x + PLATFORM.initEnemySpeedX * this.sspeedMultiplier * enemy.getData('direction'));	
 					enemy.incData('left', deltaX);
 					enemy.incData('right', deltaX);
+
+					//sync the physics body with the updated position since it is a static body that is not automatically updated
+					if (enemy.body instanceof Phaser.Physics.Arcade.StaticBody)
+						enemy.body.updateFromGameObject();
 
 				}},this);
 			
@@ -387,9 +514,11 @@ export default class Demo extends Phaser.Scene {
 				projectile.body.rotation = projectile.state as number;
 				
 			//deactivate projectile and send it back to the pool for recycling if it goes out of bounds
-			if (projectile instanceof Phaser.Physics.Arcade.Image && !this.isInBounds(projectile)) 
+			if (projectile instanceof Phaser.Physics.Arcade.Image && !this.isInBounds(projectile)) { 
 				// this.projectiles.remove(projectile,true,true);
-				this.projectiles.killAndHide(projectile)
+				this.projectiles.killAndHide(projectile);
+				return;
+			}	
 
 		}, this);
 	}
@@ -410,6 +539,11 @@ export default class Demo extends Phaser.Scene {
 					this.player.body.rotation = rotAngleInDegrees;
 		}
 
+		//if the player is hurt update the players opacity
+		if (this.player.state) {
+			this.player.setAlpha(this.playerFlashTween.getValue());
+			this.healthBar.setSize(this.healthBarDropTween.getValue(), this.healthBar.height);
+		}
 		//update the projectiles fired by the player
 		this.updateProjectiles();
 
@@ -488,7 +622,7 @@ export default class Demo extends Phaser.Scene {
 					const projectile: Phaser.Physics.Arcade.Image = this.projectiles.get(this.player.x, this.player.y);
 					if (!projectile)
 						return;
-
+					//projectile.setTexture('projectile');
 					projectile.setVisible(true);
 					projectile.setActive(true);
 
