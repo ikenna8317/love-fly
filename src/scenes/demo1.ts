@@ -206,7 +206,7 @@ export default class Demo extends Phaser.Scene {
 			//make the player unable to go beyond the screen
 			this.player.body.setCollideWorldBounds(true, 0, 0.2);
 
-			//set the horizontal drag of the player for a smoother horizontal movement
+			//set the horizontal drag of the player for a less slippery horizontal movement
 			this.player.body.setDamping(true);
 			this.player.body.setDragX(0.15);
 
@@ -230,21 +230,14 @@ export default class Demo extends Phaser.Scene {
 				//@ts-ignore
 				this.player.getByName('dust').anims.play('trail_dust');
 
-		    //if player was in 'track pointer' mode then play the move animation from beginning, otherwise resume the move animation	
-			//const pbody: Phaser.GameObjects.Sprite = this.player.getAt(2) as Phaser.GameObjects.Sprite;
-			if (this.player.getData('trackPointer')) { 	
-				//@ts-ignore: Container only returns objects of type 'GameObject' and so fails compilation when accessing 'anims' property and type assertion does not work
-				//but we are certain they are all sprites
-				this.player.getByName('body').anims.play('player_move');
-				//@ts-ignore
-				this.player.getByName('gun').anims.play('gun_move');
-				//@ts-ignore
-				this.player.getByName('hands').anims.play('hands_move');
-				//this.player.getByName('dust').anims.play('trail_dust');
-			} else {
-				//@ts-ignore
-				this.player.iterate(part => part.anims.resume());			
-			}
+			//@ts-ignore: Container only returns objects of type 'GameObject' and so fails compilation when accessing 'anims' property and type assertion does not work
+			//but we are certain they are all sprites
+			this.player.getByName('body').anims.play('player_move', true);
+			//@ts-ignore
+			this.player.getByName('gun').anims.play('gun_move', true);
+			//@ts-ignore
+			this.player.getByName('hands').anims.play('hands_move', true);
+			//this.player.getByName('dust').anims.play('trail_dust');
 
 			//let the game know that the player is currently grounded and not in track pointer mode
 			this.player.setData('isGrounded', true);
@@ -255,31 +248,6 @@ export default class Demo extends Phaser.Scene {
 				this.player.body.rotation = 0;
 
 		});
-
-		/*
-		 //NOTE: might have to set the classtype of projectiles as sprites later
-		this.physics.add.collider(this.projectiles, floor, (floor, projectile) => {
-			//if (projectile instanceof Phaser.Physics.Arcade.Body) {
-				console.log('projectile properly collided');
-				//console.log(projectile);
-				//console.log(floor);
-				//return;
-				//Again, Phaser incorrectly set the return value of a property to be a general 'GameObject' that lacks many properties instead of a union of possible types that can
-				//easily be assserted so typescript will keep throwing errors unless i explicitly ignore it 
-				
-				//console.log(projectile.gameObject);
-				//return;
-				//@ts-ignore
-				projectile.setTexture('floor_smoke');
-				//projectile.gameObject.setActive(false);
-				const floorSmokeEvent: Phaser.Time.TimerEvent = this.time.addEvent({ delay: 100, callback: () => {
-					//projectile.setTexture('projectile');
-					this.projectiles.killAndHide(projectile);
-				}});
-				this.time.removeEvent(floorSmokeEvent);
-			//}
-		});
-	  */
 
 		//check for when a projectile overlaps (hits) an enemy 
 		 this.physics.add.overlap(this.projectiles, this.enemies, (projectile, enemy) => {
@@ -299,51 +267,17 @@ export default class Demo extends Phaser.Scene {
 		//collider between player and enemy, for now we will only cause a certain animation frame to pop up on collision, TODO: later on w will implement a proper
 		//health system where after a certain number of collisions the player passes out and the scene ends or restarts
 		this.physics.add.overlap(this.player, this.enemies, (player, enemy) => {
-			//if enemy is not active or player has very recently been hit then exit
-			if (!enemy.active || player.state)
+			if (!enemy.active)
 				return;
 
-			player.setState(1);		//signify that the player has been hit
-			setTimeout(() => {
-				player.setState(0);
-				//@ts-ignore
-				player.setAlpha(1);
-				this.tweens.remove(this.playerFlashTween);
-				this.tweens.remove(this.healthBarDropTween);
-			}, 2500);		//make the player 'unhit' after 2.5s has elapsed
-
-			const newHealth: number = this.player.getData('health') - ENEMY.damage;
-
-			this.playerFlashTween = this.tweens.addCounter({from: 0, to: 1, duration: 500, loop: 3});
-			
-			if (newHealth > 0) {
-				this.healthBarDropTween = this.tweens.addCounter({from: this.player.getData('health'), to: newHealth, duration: 250});
-				this.player.setData('health', newHealth);
-			}
-			//TODO: later add an else to handle the scenario where player loses all her health i.e. game over
-
-			const duration: number = 100;
-			//@ts-ignore
-			//player.getByName('body').anims.pause();
-			player.getByName('body').anims.pause(player.getByName('body').anims.get('player_hit').frames[0]);
-	
-			//give the player a small push back
-			//@ts-ignore
-			player.body.setVelocityX(-100);
-
-			if (player.getData('isGrounded'))
-				//@ts-ignore
-				player.getByName('body').anims.playAfterDelay('player_move', duration);
-			else 
-				//@ts-ignore
-				setTimeout(() => player.getByName('body').anims.resume(), duration);		
+			this.hurtPlayer(player as Phaser.GameObjects.Container, ENEMY.damage);
 		});
 
 		//create the cursor keys we will use to control the player
 		this.cursorKeys = this.input.keyboard.createCursorKeys();
 
 		this.cursorKeys.left.setEmitOnRepeat(true);		//we want the left button to keep running even while it is pressed down
-		//as long as the left button is pressed down, flip the player and move the player leftward
+		//as long as the left button is pressed down, move the player leftward
 		this.cursorKeys.left.on('down', event => {
 			if (this.player.body instanceof Phaser.Physics.Arcade.Body)
 				this.player.body.setVelocityX(-1 * PLAYER.speedX);
@@ -496,6 +430,48 @@ export default class Demo extends Phaser.Scene {
 			this.platforms.killAndHide(tile);
 	}
 
+	//causes the player to lose some health and be momentarily invincible
+	hurtPlayer(player: Phaser.GameObjects.Container, damage: number): void {
+			//if the player has very recently been hit then exit
+			if (player.state)
+				return;
+
+			player.setState(1);		//signify that the player has been hit
+			setTimeout(() => {
+				player.setState(0);
+				//@ts-ignore
+				player.setAlpha(1);
+				this.tweens.remove(this.playerFlashTween);
+				this.tweens.remove(this.healthBarDropTween);
+			}, 2500);		//make the player 'unhit' after 2.5s has elapsed
+
+			//calculate the new health based on the damage received and the current health
+			let newHealth: number = this.player.getData('health') - damage;
+
+			//play the player flashing effect
+			this.playerFlashTween = this.tweens.addCounter({from: 0, to: 1, duration: 500, loop: 3});
+		
+			//TODO: later replace this with code such that when the health of the player is less than 0, the scene ends or the game restarts
+			if (newHealth < 0)
+				newHealth = 0;
+
+			//this tween ensures that the health bar drops more smoothly
+			this.healthBarDropTween = this.tweens.addCounter({from: this.player.getData('health'), to: newHealth, duration: 250});
+			
+			//update the players health
+			this.player.setData('health', newHealth);
+
+			//if the player is not grounded
+			if (!player.getData('isGrounded'))
+				//@ts-ignore
+				player.getByName('body').anims.pause(player.getByName('body').anims.get('player_hit').frames[0]);
+	
+			//give the player a small push back
+			//@ts-ignore
+			player.body.setVelocityX(-100);
+
+    }
+
 	//for every frame, for all projectiles, update position of projectile 
 	//and check if a projectile is out of bounds and destroys them if so
 	updateProjectiles(): void {
@@ -524,11 +500,7 @@ export default class Demo extends Phaser.Scene {
 	}
 
 	//update loop: called once per frame
-	update(): void {
-		//scroll the background and overlay leftward
-		this.bgd.tilePositionX += this.scrollSpeed.bgd;
-		this.overlay.tilePositionX += this.scrollSpeed.overlay;
-
+	update(): void {	
 		//update the scrolling platforms
 		this.updatePlatforms();
 
@@ -546,6 +518,10 @@ export default class Demo extends Phaser.Scene {
 		}
 		//update the projectiles fired by the player
 		this.updateProjectiles();
+
+		//scroll the background and overlay leftward
+		this.bgd.tilePositionX += this.scrollSpeed.bgd;
+		this.overlay.tilePositionX += this.scrollSpeed.overlay;
 
 	}
 
