@@ -109,8 +109,9 @@ export default class Demo extends Phaser.Scene {
 		//TODO: setup the health bar and player icon
 		const playerIcon: Phaser.GameObjects.Image = this.add.image(50, 50, 'player_icon').setOrigin(0,0);
 		this.healthBar = this.add.rectangle(50 + PLAYER_ICON.width, 50, PLAYER.health, PLAYER_ICON.height/2, 0x09D805).setOrigin(0,0);
-		
-		this.uiLayer = this.add.layer([playerIcon, this.healthBar]);
+		const healthBarContainer: Phaser.GameObjects.Rectangle = this.add.rectangle(50 + PLAYER_ICON.width, 50, PLAYER.health, PLAYER_ICON.height/2, 0x000000).setOrigin(0,0);	
+	
+		this.uiLayer = this.add.layer([playerIcon, healthBarContainer, this.healthBar]);
 		//this.uiLayer.add([playerIcon, this.healthBar]);
 		this.uiLayer.setDepth(11);
 
@@ -340,7 +341,7 @@ export default class Demo extends Phaser.Scene {
 		this.player.getByName('dust').setActive(false);
 		//this.anims.play('cykrab_move', this.enemies.getChildren());
 
-		//create a repeating timed loop that dynamically creates new platforms
+		//create a repeating timed loop that dynamically creates new platforms every 2.5s
 		this.time.addEvent({delay: 2500, loop: true, callback: () => this.createPlatforms()});
 	   
 	}
@@ -356,12 +357,20 @@ export default class Demo extends Phaser.Scene {
 		let x: number = CANVAS_WIDTH+10;
 		let tile: Phaser.GameObjects.Image = null;
 
+		//create each tile
 		for (let i: number = 0; i < numOfTiles; i++) {
+			//attempt to get a new tile from the pool otherwise create a new one and add to the pool
 			tile = this.platforms.get(x, posY);
+			
+			//if unable to get existing tile or create a new tile, most likely the pool size has reached its maximum in such case abort the platform creation process
 			if (!tile)
 				return;
+
+			//self explanatory
 			tile.setVisible(true);
 			tile.setActive(true);
+
+			//update the position where the next tile is to be placed
 			x += PLATFORM.tileWidth;
 		}
 
@@ -459,7 +468,7 @@ export default class Demo extends Phaser.Scene {
 			this.healthBarDropTween = this.tweens.addCounter({from: this.player.getData('health'), to: newHealth, duration: 250});
 			
 			//update the players health
-			this.player.setData('health', newHealth);
+			player.setData('health', newHealth);
 
 			//if the player is not grounded
 			if (!player.getData('isGrounded'))
