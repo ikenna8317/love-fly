@@ -94,7 +94,7 @@ const gameConstants: GameConstants = {
     },
     BGD_SCROLL_SPEED: 2,
     PROJECTILE: {
-        speed: 500,
+        speed: 1500,
         maxPoolCapacity: 10
     },
     ENEMY: {
