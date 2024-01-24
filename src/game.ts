@@ -4,16 +4,16 @@ import {
     Types
 } from 'phaser';
 //import Demo from './scenes/demo';
-import Demo from './scenes/demo1'
+import MainScene from './scenes/main';
 import gameConstants from './constants';
 
 const {
     CANVAS_HEIGHT,
     CANVAS_WIDTH,
     GRAVITY
-} = gameConstants
+} = gameConstants;
 
-// 
+ 
 const gameConfig: Types.Core.GameConfig = {
     type: Phaser.AUTO,
     backgroundColor: '#000000',
@@ -31,7 +31,7 @@ const gameConfig: Types.Core.GameConfig = {
             }
         }
     },
-    scene: Demo
+    scene: MainScene
 };
 
 const game: Game = new Phaser.Game(gameConfig);

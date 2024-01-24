@@ -48,7 +48,8 @@ interface GameConstants {
         maxPoolCapacity: number
     },
     ENEMY: {
-	damage: number
+		damage: number,
+    	spawnOffset: number
     }
 
 
@@ -71,7 +72,7 @@ const gameConstants: GameConstants = {
         spawnY: 100,
         speedX: 175,
         jump: 170,
-	health: 300,
+	    health: 300,
         recoilSpeed: 250
     },
     ELEVATOR: {
@@ -98,7 +99,8 @@ const gameConstants: GameConstants = {
         maxPoolCapacity: 10
     },
     ENEMY: {
-	damage: 50
+		damage: 50,
+		spawnOffset: 40
     }
 
 };
