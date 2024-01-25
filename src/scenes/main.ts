@@ -289,11 +289,11 @@ export default class MainScene extends Phaser.Scene {
 
 		//the track pointer key, when pressed enables 'track pointer' mode which enables the player to rotate while
 		//in mid air to continually face the pointer
-		this.trackPointerKey = this.input.keyboard.addKey('Q');
-		this.trackPointerKey.on('down', event => {
-			if (!this.player.getData('isGrounded'))	
-				this.player.setData('trackPointer', true);
-		});
+		// this.trackPointerKey = this.input.keyboard.addKey('Q');
+		// this.trackPointerKey.on('down', event => {
+		// 	if (!this.player.getData('isGrounded'))	
+		// 		this.player.setData('trackPointer', true);
+		// });
 
 		//setup the game animations
 		////-----------------------
@@ -510,11 +510,11 @@ export default class MainScene extends Phaser.Scene {
 		//continue to update the rotation of the player to face the cursor/pointer while in 'track pointer' mode
 		if (this.player.getData('trackPointer')) {
 			const rotAngleInDegrees: number = this.updatePlayerAngle();
-				if (this.player.body instanceof Phaser.Physics.Arcade.Body && rotAngleInDegrees != -1)
-					this.player.body.rotation = rotAngleInDegrees;
+			if (this.player.body instanceof Phaser.Physics.Arcade.Body && rotAngleInDegrees != -1)
+				this.player.body.rotation = rotAngleInDegrees;
 		}
 
-		//if the player is hurt update the players opacity
+		//if the player is hurt update the players opacity and resize the health bar
 		if (this.player.state) {
 			this.player.setAlpha(this.playerFlashTween.getValue());
 			this.healthBar.setSize(this.healthBarDropTween.getValue(), this.healthBar.height);
@@ -579,8 +579,12 @@ export default class MainScene extends Phaser.Scene {
 				this.player.getByName('dust').setVisible(false);
 				this.player.getByName('dust').setActive(false);
 
-				this.player.setData('isGrounded', false);		
-			} 
+				this.player.setData('isGrounded', false);	
+
+				//enable track pointer mode after a very brief delay of 100ms
+				setTimeout(() => this.player.setData('trackPointer', true), 100);
+			}
+
 
 			//fires projectile when 'SPACE' button is pressed while in 'track pointer' mode
 			if (this.player.getData('trackPointer')) {
