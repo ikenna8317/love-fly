@@ -4,62 +4,57 @@ import gameConstants from '../constants';
 const {
 	CANVAS_WIDTH,
 	CANVAS_HEIGHT,
-	FLOOR_HEIGHT,
 	ENEMY,
+	EVENTS,
 	PLATFORM
 } = gameConstants;
 
-/*
- Base enemy gameobject template
-*/
-class Enemy extends Phaser.GameObjects.Sprite {
-	parentGroup: Phaser.GameObjects.Group;
+
+//Base enemy class
+class Enemy extends Phaser.Physics.Arcade.Sprite {
+	sspeedMultiplier: number;
 	damage: number;
 
-	constructor(scene: Phaser.Scene, parentGroup: Phaser.GameObjects.Group, textureKey: string, damage: number) {
-		super(scene, CANVAS_WIDTH + ENEMY.spawnOffset, CANVAS_HEIGHT - FLOOR_HEIGHT, textureKey);
-		this.parentGroup = parentGroup;
+	constructor(scene: Phaser.Scene, x: number, y: number, textureKey: string, damage: number = 0) {
+		super(scene, x, y, textureKey);
+		this.sspeedMultiplier = 1;
 		this.damage = damage;
+
+		scene.physics.add.existing(this);
+	}
+
+	update(): void {
+		if (this.x < -PLATFORM.destroyBoundaryX) 
+			this.disableBody(true);
+		
 	}
 }
 
 /*
 	A simple enemy that moves from right to left horizontally
 */
-export class SimpleScrollEnemy extends Enemy {
-	sspeedMultiplier: number;
+class SimpleScrollEnemy extends Enemy {
+	speedX: number;
 
-	constructor(scene: Phaser.Scene, parentGroup: Phaser.GameObjects.Group, textureKey: string, damage: number) {
-		super(scene, parentGroup, textureKey, damage);
-		this.sspeedMultiplier = 1;
+	constructor(scene: Phaser.Scene, x: number, y: number, textureKey: string, speedX: number, damage: number = 0) {
+		super(scene, x, y, textureKey, damage);
+		this.speedX = speedX;
+
+		setTimeout(() => this.start(), 100);
+		return this;
+	}
+
+	start(): void {
+		this.setVelocityX(-this.speedX);
 	}
 
 	update(): void {
-		if (this.x < PLATFORM.destroyBoundaryX) {
-			this.anims.stop();
-			this.parentGroup.kill(this);
-			return;
-		}
-
-		this.setX(-1 * this.x + PLATFORM.initEnemySpeedX * this.sspeedMultiplier);	
-
-		if (this.body instanceof Phaser.Physics.Arcade.StaticBody)
-			this.body.updateFromGameObject();
+		super.update();
 	}
 }
 
-/*
-//demo red block
-export class Block extends Phaser.GameObjects.Rectangle {
-	constructor(scene: Phaser.Scene, x: number, y: number) {
-		super(scene, x, y, 50, 50, 0xff0000);
-	}
-
-//move the block leftwards and if it goes past 0 then reset it back to 600
-	update(): void {
-		this.setX(this.x-5);
-		if (this.x < 0)
-			this.setX(600);
+export class Bogey extends SimpleScrollEnemy {
+	constructor(scene: Phaser.Scene) {
+		super(scene, CANVAS_WIDTH + ENEMY.spawnOffset, CANVAS_HEIGHT - 50, 'bogey', 50);
 	}
 }
-*/

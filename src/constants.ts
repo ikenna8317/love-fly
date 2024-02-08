@@ -50,6 +50,9 @@ interface GameConstants {
     ENEMY: {
 		damage: number,
     	spawnOffset: number
+    },
+    EVENTS: {
+        SPAWNED: string
     }
 
 
@@ -101,6 +104,9 @@ const gameConstants: GameConstants = {
     ENEMY: {
 		damage: 50,
 		spawnOffset: 40
+    },
+    EVENTS: {
+        SPAWNED: 'S'
     }
 
 };

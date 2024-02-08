@@ -1,5 +1,6 @@
 import 'phaser';
 import gameConstants from '../constants';
+import { Bogey } from '../gameobjs/enemy';
 
 const {
     CANVAS_HEIGHT,
@@ -116,12 +117,12 @@ export default class MainScene extends Phaser.Scene {
 		this.uiLayer.setDepth(11);
 
 		//A rectangular object with physics later enabled to prevent player from falling through
-        const floor: Phaser.GameObjects.Rectangle = this.add.rectangle(0, CANVAS_HEIGHT - FLOOR_HEIGHT, CANVAS_WIDTH, FLOOR_HEIGHT, 0xd1e3ff).setOrigin(0, 0);
+        const floor: Phaser.GameObjects.Rectangle = this.add.rectangle(0, CANVAS_HEIGHT - FLOOR_HEIGHT, CANVAS_WIDTH + 120, FLOOR_HEIGHT, 0xd1e3ff).setOrigin(0, 0);
 		floor.setVisible(false);	
 
 		//create the platforms and enemies group
 		this.platforms = this.add.group();
-		this.enemies = this.physics.add.staticGroup();
+		this.enemies = this.physics.add.group();
 
 		//init the scroll speed multiplier
 		this.sspeedMultiplier = 1;
@@ -133,8 +134,9 @@ export default class MainScene extends Phaser.Scene {
 		this.platforms.maxSize = PLATFORM.maxTilePoolCapacity;
 
 		//init the enemies group state
-		this.enemies.classType = Phaser.GameObjects.Sprite;
-		this.enemies.defaultKey = 'cykrab';
+		this.enemies.classType = Bogey;
+		this.enemies.runChildUpdate = true;
+		// this.enemies.defaultKey = 'cykrab';
 		this.enemies.defaultFrame = 1;
 
 		//this is the max number of enemies that can be in the pool (active or inactive) at a time
@@ -215,21 +217,21 @@ export default class MainScene extends Phaser.Scene {
 				return;
 
 			this.player.getByName('dust').setActive(true);
-			//@ts-ignore
+			//@ts-expect-error
 			this.player.getByName('dust').setVisible(true);
 
 			//since at the beginning when the player is spawned mid air we set this here so that if the dust trail animation isn't already playing we can play it like this
-			//@ts-ignore
+			//@ts-expect-error
 			if (!this.player.getByName('dust').anims.isPlaying)
-				//@ts-ignore
+				//@ts-expect-error
 				this.player.getByName('dust').anims.play('trail_dust');
 
-			//@ts-ignore: Container only returns objects of type 'GameObject' and so fails compilation when accessing 'anims' property and type assertion does not work
+			//@ts-expect-error: Container only returns objects of type 'GameObject' and so fails compilation when accessing 'anims' property and type assertion does not work
 			//but we are certain they are all sprites
 			this.player.getByName('body').anims.play('player_move', true);
-			//@ts-ignore
+			//@ts-expect-error
 			this.player.getByName('gun').anims.play('gun_move', true);
-			//@ts-ignore
+			//@ts-expect-error
 			this.player.getByName('hands').anims.play('hands_move', true);
 			//this.player.getByName('dust').anims.play('trail_dust');
 
@@ -243,6 +245,8 @@ export default class MainScene extends Phaser.Scene {
 
 		});
 
+		this.physics.add.collider(this.enemies, floor);
+
 		//check for when a projectile overlaps (hits) an enemy 
 		 this.physics.add.overlap(this.projectiles, this.enemies, (projectile, enemy) => {
 			if (!enemy.active)
@@ -250,18 +254,22 @@ export default class MainScene extends Phaser.Scene {
 			 //console.log('killed an enemy');
 			 //deactivate and hide the projectile to be recycled back in the loop
 			this.projectiles.killAndHide(projectile);
-			//@ts-ignore: Workaround an unidentified type to prevent typescript from throwing error
+			//@ts-expect-error: Workaround an unidentified type to prevent typescript from throwing error
 			//play the 'poof' smoke animation on the enemy
 			enemy.anims.play('poof');
-			//@ts-ignore
 			//once the animation finishes, deactivate and hide the enemy to be recycled back in the pool
-			enemy.on('animationcomplete', event => this.enemies.killAndHide(enemy));
+			enemy.on('animationcomplete', event => {
+				//@ts-expect-error
+				enemy.disableBody(); 
+				this.enemies.killAndHide(enemy);
+			});
 		});
 
 		//collider between player and enemy, for now we will only cause a certain animation frame to pop up on collision, TODO: later on w will implement a proper
 		//health system where after a certain number of collisions the player passes out and the scene ends or restarts
 		this.physics.add.overlap(this.player, this.enemies, (player, enemy) => {
-			if (!enemy.active)
+			//@ts-expect-error
+			if (!enemy.active || enemy.damage == 0)
 				return;
 
 			this.hurtPlayer(player as Phaser.GameObjects.Container, ENEMY.damage);
@@ -298,22 +306,22 @@ export default class MainScene extends Phaser.Scene {
 		//setup the game animations
 		////-----------------------
 		//player body animations
-		//@ts-ignore: Bypass type checking because i am sure all gameobjects in the 'player' container are sprites and not base 'gameobjects'
+		//@ts-expect-error: Bypass type checking because i am sure all gameobjects in the 'player' container are sprites and not base 'gameobjects'
 		this.player.getByName('body').anims.create({key: 'player_move', frames: this.anims.generateFrameNumbers('player', {start: 0, end: 3}), repeat: -1, frameRate: 16});
-		//@ts-ignore: Same as comment above
+		//@ts-expect-error: Same as comment above
 		this.player.getByName('body').anims.create({key: 'player_stagger', frames: this.anims.generateFrameNumbers('player', {frames: [4]}), frameRate: 1});
-		//@ts-ignore
+		//@ts-expect-error
 		this.player.getByName('body').anims.create({key: 'player_hit', frames: this.anims.generateFrameNumbers('player', {frames: [5]}), frameRate: 1});
 
 		//gun animations
-		//@ts-ignore: same as above
+		//@ts-expect-error: same as above
 		this.player.getByName('gun').anims.create({key: 'gun_move', frames: this.anims.generateFrameNumbers('gun', {start: 0, end: 1}), repeat: -1, frameRate: 8});
 
 		//hand animations
-		//@ts-ignore: same as comments above
+		//@ts-expect-error: same as comments above
 		this.player.getByName('hands').anims.create({key: 'hands_move', frames: this.anims.generateFrameNumbers('hands', {start: 0, end: 1}), repeat: -1, frameRate: 8});
 
-		//@ts-ignore
+		//@ts-expect-error
 		this.player.getByName('dust').anims.create({key: 'trail_dust', frames: this.anims.generateFrameNumbers('dust_trail', {start: 0, end: 1}), repeat: -1, frameRate: 8});
 
 
@@ -321,15 +329,15 @@ export default class MainScene extends Phaser.Scene {
 		this.anims.create({key: 'poof', frames: this.anims.generateFrameNumbers('poof', {start: 0, end: 1}), frameRate: 8});
 		//this.anims.create({key: 'player_jump', frames: this.anims.generateFrameNumbers('player', {frames: [2]})});
 		//this.player.anims.chain(['player_move', 'player_stagger']);
-		//@ts-ignore: same as comment above
+		//@ts-expect-error: same as comment above
 		this.player.getByName('body').anims.play('player_move');
-		//@ts-ignore
+		//@ts-expect-error
 		this.player.getByName('gun').anims.play('gun_move');
-		//@ts-ignore
+		//@ts-expect-error
 		this.player.getByName('hands').anims.play('hands_move');
 
 		//hide the dust trail in the beginning while the player has not landed on the ground
-		//@ts-ignore
+		//@ts-expect-error
 		this.player.getByName('dust').setVisible(false);
 		this.player.getByName('dust').setActive(false);
 		//this.anims.play('cykrab_move', this.enemies.getChildren());
@@ -337,6 +345,8 @@ export default class MainScene extends Phaser.Scene {
 		//TODO: might phase out the enemy and platforms update loop
 		//create a repeating timed loop that dynamically creates new platforms every 2.5s
 		// this.time.addEvent({delay: 2500, loop: true, callback: () => this.createPlatforms()});
+		this.enemies.get();
+		// const bogey2: Bogey = new Bogey(this);
 	   
 	}
 
@@ -442,7 +452,6 @@ export default class MainScene extends Phaser.Scene {
 			player.setState(1);		//signify that the player has been hit
 			setTimeout(() => {
 				player.setState(0);
-				//@ts-ignore
 				player.setAlpha(1);
 				this.tweens.remove(this.playerFlashTween);
 				this.tweens.remove(this.healthBarDropTween);
@@ -466,11 +475,11 @@ export default class MainScene extends Phaser.Scene {
 
 			//if the player is not grounded
 			if (!player.getData('isGrounded'))
-				//@ts-ignore
+				//@ts-expect-error
 				player.getByName('body').anims.pause(player.getByName('body').anims.get('player_hit').frames[0]);
 	
 			//give the player a small push back
-			//@ts-ignore
+			//@ts-expect-error
 			player.body.setVelocityX(-100);
 
     }
@@ -564,18 +573,18 @@ export default class MainScene extends Phaser.Scene {
 			//if player is grounded i.e. not in midair then make the player jump
 			if (this.player.getData('isGrounded')) {
 				this.player.body.setVelocityY(-1 * PLAYER.jump);
-				//@ts-ignore: Bypass type checking since we are sure that the object returned by getAt() is a sprite and not a base gameobject specified by the phase docs
+				//@ts-expect-error: Bypass type checking since we are sure that the object returned by getAt() is a sprite and not a base gameobject specified by the phase docs
 				//now we can call the 'anims' property without running into a type error
 				this.player.getByName('body').anims.pause(this.player.getByName('body').anims.currentAnim.frames[2]);
-				//@ts-ignore
+				//@ts-expect-error
 				this.player.getByName('gun').anims.pause(this.player.getByName('gun').anims.currentAnim.frames[0]);
-				//@ts-ignore
+				//@ts-expect-error
 				this.player.getByName('hands').anims.pause(this.player.getByName('hands').anims.currentAnim.frames[0]);
 				
 				//pause and hide the trail dust animation
-				//@ts-ignore
+				//@ts-expect-error
 				this.player.getByName('dust').anims.pause();
-				//@ts-ignore
+				//@ts-expect-error
 				this.player.getByName('dust').setVisible(false);
 				this.player.getByName('dust').setActive(false);
 
@@ -597,7 +606,7 @@ export default class MainScene extends Phaser.Scene {
 					this.player.body.setVelocityY(rfY * PLAYER.recoilSpeed);
 				
 					//console.debug(this.player.getAt(2).anims.get('player_stagger'));
-					//@ts-ignore: same as above
+					//@ts-expect-error: same as above
 					this.player.getByName('body').anims.pause(this.player.getByName('body').anims.get('player_stagger').frames[0]);
 
 					//create a new projectile at the position of the player
