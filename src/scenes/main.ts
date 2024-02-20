@@ -1,6 +1,9 @@
 import 'phaser';
 import gameConstants from '../constants';
-import { Bogey } from '../gameobjs/enemy';
+import { 
+	Enemy,
+	Bogey
+ } from '../gameobjs/enemy';
 
 const {
     CANVAS_HEIGHT,
@@ -344,8 +347,15 @@ export default class MainScene extends Phaser.Scene {
 
 		//TODO: might phase out the enemy and platforms update loop
 		//create a repeating timed loop that dynamically creates new platforms every 2.5s
+		this.time.addEvent({delay: 2500, loop: true, callback: () => { 
+			const enemy: Bogey = this.enemies.get(CANVAS_WIDTH+ENEMY.spawnOffset, 40); 
+			if (!enemy)
+				return;
+			//@ts-expect-error
+			enemy.enableBody();
+		}});
 		// this.time.addEvent({delay: 2500, loop: true, callback: () => this.createPlatforms()});
-		this.enemies.get();
+		
 		// const bogey2: Bogey = new Bogey(this);
 	   
 	}

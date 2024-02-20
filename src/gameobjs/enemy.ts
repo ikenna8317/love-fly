@@ -11,7 +11,7 @@ const {
 
 
 //Base enemy class
-class Enemy extends Phaser.Physics.Arcade.Sprite {
+export class Enemy extends Phaser.Physics.Arcade.Sprite {
 	sspeedMultiplier: number;
 	damage: number;
 
@@ -24,8 +24,10 @@ class Enemy extends Phaser.Physics.Arcade.Sprite {
 	}
 
 	update(): void {
-		if (this.x < -PLATFORM.destroyBoundaryX) 
+		if (this.x < -PLATFORM.destroyBoundaryX) {
 			this.disableBody(true);
+			this.setActive(false);
+		}
 		
 	}
 }
@@ -55,6 +57,7 @@ class SimpleScrollEnemy extends Enemy {
 
 export class Bogey extends SimpleScrollEnemy {
 	constructor(scene: Phaser.Scene) {
-		super(scene, CANVAS_WIDTH + ENEMY.spawnOffset, CANVAS_HEIGHT - 50, 'bogey', 50);
+		// super(scene, CANVAS_WIDTH + ENEMY.spawnOffset, CANVAS_HEIGHT - 50, 'bogey', 50);
+		super(scene, CANVAS_WIDTH-30, CANVAS_HEIGHT-50, 'bogey', 50);
 	}
 }
