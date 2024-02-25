@@ -336,7 +336,7 @@ export default class MainScene extends Phaser.Scene {
 
 		//TODO: might phase out the enemy and platforms update loop
 		//create a repeating timed loop that dynamically creates new platforms every 2.5s
-		// this.time.addEvent({delay: 2500, loop: true, callback: () => this.createPlatforms()});
+		this.time.addEvent({delay: 2500, loop: true, callback: () => this.createPlatforms()});
 	   
 	}
 
@@ -505,7 +505,7 @@ export default class MainScene extends Phaser.Scene {
 	//update loop: called once per frame
 	update(): void {	
 		//update the scrolling platforms
-		// this.updatePlatforms();
+		this.updatePlatforms();
 
 		//continue to update the rotation of the player to face the cursor/pointer while in 'track pointer' mode
 		if (this.player.getData('trackPointer')) {
